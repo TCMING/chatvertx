@@ -1,4 +1,4 @@
-package com.uestc.controllerteam.chartservice.utils;
+package com.chat.utils;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
@@ -6,9 +6,9 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.uestc.controllerteam.chartservice.exception.AuthException;
-import com.uestc.controllerteam.chartservice.exception.AuthException2;
-import com.uestc.controllerteam.chartservice.exception.AuthException3;
+//import com.chat.exception.AuthException;
+//import com.chat.exception.AuthException2;
+//import com.chat.exception.AuthException3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,37 +41,36 @@ public class JwtUtils {
 //                .withExpiresAt(expiresDate)  //有效时间
                 .sign(Algorithm.HMAC256(username+"hello"));   //加密
     }
-
+    // TODO
     /**
-     * 检验合法性，其中secret参数就应该传入的是用户的id
-     * @param token
-     */
-    public static void verifyToken(String token, String secret) throws RuntimeException {
-        DecodedJWT jwt = null;
-        try {
-            JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secret+"hello")).build();
-            jwt = verifier.verify(token);
-        } catch (Exception e) {
-            logger.error("----",e);
-            //效验失败
-            throw new AuthException2("token校验失败");
-        }
-    }
-
-    /**
-     * 获取签发对象
-     */
-    public static String getAudience(String token) throws RuntimeException {
-        String audience = null;
-        try {
-            audience = JWT.decode(token).getAudience().get(0);
-        } catch (JWTDecodeException j) {
-            //这里是token解析失败
-            throw new AuthException3("token解析失败");
-        }
-        return audience;
-    }
-
+//     * 检验合法性，其中secret参数就应该传入的是用户的id
+//     * @param token
+//     */
+//    public static void verifyToken(String token, String secret) throws RuntimeException {
+//        DecodedJWT jwt = null;
+//        try {
+//            JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secret+"hello")).build();
+//            jwt = verifier.verify(token);
+//        } catch (Exception e) {
+//            logger.error("----",e);
+//            //效验失败
+//            throw new AuthException2("token校验失败");
+//        }
+//    }
+//
+//    /**
+//     * 获取签发对象
+//     */
+//    public static String getAudience(String token) throws RuntimeException {
+//        String audience = null;
+//        try {
+//            audience = JWT.decode(token).getAudience().get(0);
+//        } catch (JWTDecodeException j) {
+//            //这里是token解析失败
+//            throw new AuthException3("token解析失败");
+//        }
+//        return audience;
+//    }
 
     /**
      * 通过载荷名字获取载荷的值

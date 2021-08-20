@@ -1,12 +1,12 @@
-package com.uestc.controllerteam.chartservice.service;
+package com.chat.service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.uestc.controllerteam.chartservice.dto.RoomDto;
-import com.uestc.controllerteam.chartservice.dto.UserDto;
-import com.uestc.controllerteam.chartservice.repository.RoomRepository;
-import com.uestc.controllerteam.chartservice.repository.UserRepository;
+import com.chat.model.RoomDto;
+import com.chat.model.UserDto;
+import com.chat.repository.RoomRepository;
+import com.chat.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package com.chat.service;
+package com.chat.handler;
 
-public class RoomService {
+public class RoomHandler {
 }

@@ -1,9 +1,9 @@
-package com.uestc.controllerteam.chartservice.service;
+package com.chat.service;
 
-import com.uestc.controllerteam.chartservice.dto.UserDto;
-import com.uestc.controllerteam.chartservice.model.UserRequest;
-import com.uestc.controllerteam.chartservice.model.UserResponse;
-import com.uestc.controllerteam.chartservice.repository.UserRepository;
+import com.chat.model.UserDto;
+import com.chat.model.UserRequest;
+import com.chat.model.UserResponse;
+import com.chat.repository.UserRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

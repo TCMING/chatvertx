@@ -1,4 +1,4 @@
-package com.uestc.controllerteam.chartservice.dto;
+package com.chat.model;
 
 import lombok.Data;
 
