@@ -25,15 +25,20 @@ class ChatServer extends AbstractVerticle {
     private MessageService messageService;
 
     public static void main(String[] args){
-        int loopNum = 8;
-        VertxOptions vo = new VertxOptions();
-        vo.setEventLoopPoolSize(loopNum);
-        Vertx vertx = Vertx.vertx(vo);
-        for(int i=0; i<loopNum; i++)
-            vertx.deployVerticle(new ChatServer());
-
+        Vertx.vertx().deployVerticle(new ChatServer());
+        // int loopNum = 8;
+        // VertxOptions vo = new VertxOptions();
+        // vo.setEventLoopPoolSize(loopNum);
+        // Vertx vertx = Vertx.vertx(vo);
+        // for(int i=0; i<loopNum; i++)
+        //     vertx.deployVerticle(new ChatServer());
     }
 
+    public ChatServer() {
+        this.userService = new UserService();
+        this.roomService = new RoomService();
+        this.messageService = new MessageService();
+    }
 
     @Override
     public void start() throws Exception {
@@ -53,7 +58,7 @@ class ChatServer extends AbstractVerticle {
         //room
         router.post("/room").blockingHandler(this::room);
         router.put("/room/:roomId/enter").blockingHandler(this::roomEnter);
-        router.put("/room/roomLeave").blockingHandler(this::roomLeave);  //TODO
+        router.put("/room/roomLeave").blockingHandler(this::roomLeave);
         router.get("/room/:roomId").blockingHandler(this::roomId);
         router.post("/roomList").blockingHandler(this::roomList);
         router.get("/room/:roomId/users").blockingHandler(this::roomUserList);
@@ -99,7 +104,7 @@ class ChatServer extends AbstractVerticle {
     }
 
    private void roomLeave(RoutingContext routingContext) {
-        System.out.println("roomLeave " + routingContext.request().toString());
+        System.out.println("roomLeave");
 
         Map<String, Object> result = new HashMap<>();
         result.put("code", 0);
@@ -174,9 +179,19 @@ class ChatServer extends AbstractVerticle {
     }
 
     private void getTest(RoutingContext routingContext) {
-        HttpServerResponse response = routingContext.response();
-        response.putHeader("content-type", "text/plain");
-        response.end("Hello Test!");
+        //HttpServerResponse response = routingContext.response();
+        //response.putHeader("content-type", "text/plain");
+        //response.end("Hello Test!");
+
+        System.out.println("getTest");
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "success");
+        // 模拟service调用
+        out(routingContext, Json.encodePrettily(result));
+
+
     }
 
     private void addUser(RoutingContext routingContext) {
