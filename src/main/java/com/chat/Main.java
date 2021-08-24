@@ -4,7 +4,9 @@ import com.chat.service.MessageService;
 import com.chat.service.RoomService;
 import com.chat.service.UserService;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
@@ -15,15 +17,27 @@ import io.vertx.ext.web.handler.BodyHandler;
 
 import java.util.HashMap;
 import java.util.Map;
-
+import java.util.concurrent.atomic.AtomicInteger;
 
 class ChatServer extends AbstractVerticle {
     private UserService userService;
     private RoomService roomService;
     private MessageService messageService;
 
+    public static void main(String[] args){
+        int loopNum = 8;
+        VertxOptions vo = new VertxOptions();
+        vo.setEventLoopPoolSize(loopNum);
+        Vertx vertx = Vertx.vertx(vo);
+        for(int i=0; i<loopNum; i++)
+            vertx.deployVerticle(new ChatServer());
+
+    }
+
+
     @Override
     public void start() throws Exception {
+//        System.out.println("---------"+Thread.currentThread().getName());
         HttpServer server = vertx.createHttpServer();
 
         Router router = Router.router(vertx);
@@ -181,13 +195,5 @@ class ChatServer extends AbstractVerticle {
     private void out(RoutingContext ctx, String msg) {
         ctx.response().putHeader("Content-Type", "application/json; charset=utf-8").end(msg);
     }
-}
-
-public class Main extends AbstractVerticle {
-
-    public static void main(String[] args){
-        Vertx.vertx().deployVerticle(new ChatServer());
-    }
-
 }
 
