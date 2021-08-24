@@ -33,58 +33,130 @@ class ChatServer extends AbstractVerticle {
 
         // user
         router.post("/user").blockingHandler(this::addUser);
-        router.get("/userLogin").blockingHandler(this::userlogin);
+        router.get("/userLogin").blockingHandler(this::userLogin);
         router.get("/user").blockingHandler(this::getUserInfo);
+
+        //room
+        router.post("/room").blockingHandler(this::room);
+        router.put("/room/:roomId/enter").blockingHandler(this::roomEnter);
+        router.put("/room/roomLeave").blockingHandler(this::roomLeave);  //TODO
+        router.get("/room/:roomId").blockingHandler(this::roomId);
+        router.post("/roomList").blockingHandler(this::roomList);
+        router.get("/room/:roomId/users").blockingHandler(this::roomUserList);
 
         // message
         router.post("/message/send").blockingHandler(this::msgSend);
         router.post("/message/retrieve").blockingHandler(this::getMsgList);
-
-        //room
-        router.post("/room").blockingHandler(this::room);
-        router.put("/room/id/enter").blockingHandler(this::roomEnter);
-        router.put("/room/roomLeave").blockingHandler(this::roomLeave);
-        router.get("/room").blockingHandler(this::roomIdList);
-        router.get("/roomList").blockingHandler(this::roomList);
-        router.get("/room/id/users").blockingHandler(this::roomUserList);
-
-
 
         server.requestHandler(router);
         server.listen(8080);
     }
 
     private  void roomList(RoutingContext routingContext) {
+        JsonObject json = routingContext.getBody().toJsonObject();
+        System.out.println("roomList " + json.toString());
 
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "success");
+        result.put("data", json);
+        // 模拟service调用
+        out(routingContext, Json.encodePrettily(result));
     }
 
     private void roomUserList(RoutingContext routingContext) {
+        String id = routingContext.request().getParam("roomId");
+        System.out.println("roomUserList " + id);
 
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "getUserByName");
+        out(routingContext, Json.encodePrettily(result));
     }
 
-    private void roomIdList(RoutingContext routingContext) {
+    private void roomId(RoutingContext routingContext) {
+        String id = routingContext.request().getParam("roomId");
+        System.out.println("roomId " + id);
 
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "getUserByName");
+        out(routingContext, Json.encodePrettily(result));
     }
 
-    private void getMsgList(RoutingContext routingContext) {
-    }
+   private void roomLeave(RoutingContext routingContext) {
+        System.out.println("roomLeave " + routingContext.request().toString());
 
-    private void roomLeave(RoutingContext routingContext) {
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "success");
+        // 模拟service调用
+        out(routingContext, Json.encodePrettily(result));
     }
 
     private void roomEnter(RoutingContext routingContext) {
+        String id = routingContext.request().getParam("id");
+        System.out.println("roomEnter " + id);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "getUserByName");
+        out(routingContext, Json.encodePrettily(result));
     }
 
     private void room(RoutingContext routingContext) {
+        JsonObject json = routingContext.getBody().toJsonObject();
+        System.out.println("room: " + json.toString());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "success");
+        result.put("data", json);
+        // 模拟service调用
+        out(routingContext, Json.encodePrettily(result));
     }
 
     private void msgSend(RoutingContext routingContext) {
+        JsonObject json = routingContext.getBody().toJsonObject();
+        System.out.println("msgSend " + json.toString());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "success");
+        // 模拟service调用
+        out(routingContext, Json.encodePrettily(result));
+    }
+
+    private void getMsgList(RoutingContext routingContext) {
+        JsonObject json = routingContext.getBody().toJsonObject();
+        System.out.println("getMsgList " + json.toString());
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "success");
+        // 模拟service调用
+        out(routingContext, Json.encodePrettily(result));
     }
 
     private void getUserInfo(RoutingContext routingContext) {
+        String username = routingContext.request().getParam("username");
+        System.out.println("getUserInfo " + username);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "getUserByName");
+        out(routingContext, Json.encodePrettily(result));
     }
 
-    private void userlogin(RoutingContext routingContext) {
+    private void userLogin(RoutingContext routingContext) {
+        String username = routingContext.request().getParam("username");
+        String password = routingContext.request().getParam("password");
+        System.out.println("userLogin " + username +" "+ password);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("code", 0);
+        result.put("msg", "login");
+        out(routingContext, Json.encodePrettily(result));
     }
 
     private void getTest(RoutingContext routingContext) {
@@ -93,8 +165,9 @@ class ChatServer extends AbstractVerticle {
         response.end("Hello Test!");
     }
 
-    private void addUser(RoutingContext ctx) {
-        JsonObject json = ctx.getBody().toJsonObject();
+    private void addUser(RoutingContext routingContext) {
+        JsonObject json = routingContext.getBody().toJsonObject();
+        System.out.println("addUser " + json.toString());
 
         Map<String, Object> result = new HashMap<>();
         result.put("code", 0);
@@ -102,12 +175,11 @@ class ChatServer extends AbstractVerticle {
         result.put("data", json);
 
         // 模拟service调用
-        out(ctx, Json.encodePrettily(result));
+        out(routingContext, Json.encodePrettily(result));
     }
 
     private void out(RoutingContext ctx, String msg) {
-        ctx.response().putHeader("Content-Type", "application/json; charset=utf-8")
-                .end(msg);
+        ctx.response().putHeader("Content-Type", "application/json; charset=utf-8").end(msg);
     }
 }
 
