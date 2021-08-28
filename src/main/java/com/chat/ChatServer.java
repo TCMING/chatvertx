@@ -1,14 +1,14 @@
 package com.chat;
 
+import com.chat.repository.MessageRepository;
+import com.chat.repository.RoomRepository;
+import com.chat.repository.UserRepository;
 import com.chat.service.MessageService;
 import com.chat.service.RoomService;
 import com.chat.service.UserService;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
@@ -17,12 +17,15 @@ import io.vertx.ext.web.handler.BodyHandler;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 class ChatServer extends AbstractVerticle {
+
     private UserService userService;
     private RoomService roomService;
     private MessageService messageService;
+    private MessageRepository messageRepository;
+    private RoomRepository roomRepository;
+    private UserRepository userRepository;
 
     public static void main(String[] args){
         Vertx.vertx().deployVerticle(new ChatServer());
@@ -35,9 +38,12 @@ class ChatServer extends AbstractVerticle {
     }
 
     public ChatServer() {
-        this.userService = new UserService();
-        this.roomService = new RoomService();
-        this.messageService = new MessageService();
+        this.messageRepository = new MessageRepository();
+        this.roomRepository = new RoomRepository();
+        this.userRepository = new UserRepository();
+        this.userService = new UserService(userRepository);
+        this.roomService = new RoomService(roomRepository,userRepository);
+        this.messageService = new MessageService(messageRepository,userRepository);
     }
 
     @Override
@@ -47,8 +53,6 @@ class ChatServer extends AbstractVerticle {
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
-
-        router.get("/test").handler(this::getTest);
 
         // user
         router.post("/user").blockingHandler(this::addUser);
@@ -176,22 +180,6 @@ class ChatServer extends AbstractVerticle {
         result.put("code", 0);
         result.put("msg", "login");
         out(routingContext, Json.encodePrettily(result));
-    }
-
-    private void getTest(RoutingContext routingContext) {
-        //HttpServerResponse response = routingContext.response();
-        //response.putHeader("content-type", "text/plain");
-        //response.end("Hello Test!");
-
-        System.out.println("getTest");
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "success");
-        // 模拟service调用
-        out(routingContext, Json.encodePrettily(result));
-
-
     }
 
     private void addUser(RoutingContext routingContext) {

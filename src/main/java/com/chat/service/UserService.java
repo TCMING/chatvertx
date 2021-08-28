@@ -2,22 +2,22 @@ package com.chat.service;
 
 import com.chat.model.UserDto;
 import com.chat.model.UserRequest;
-import com.chat.model.UserResponse;
 import com.chat.repository.UserRepository;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+
 
 /**
  * @Author tianchengming
  * @Date 2021年7月3日 20:14
  * @Version 1.0
  */
-@Service
 public class UserService {
 
-    @Autowired
     private UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     public UserDto queryUserByName(String userName){
         UserDto userDto = userRepository.queryUser(userName);

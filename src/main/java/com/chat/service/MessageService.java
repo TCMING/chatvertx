@@ -4,25 +4,21 @@ import com.chat.model.MessageDto;
 import com.chat.model.UserDto;
 import com.chat.model.MessageRetrive;
 import com.chat.model.QueryControlData;
-import com.chat.model.UserRequest;
 import com.chat.repository.MessageRepository;
 import com.chat.repository.UserRepository;
-import com.chat.utils.BizCheckUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
-import java.util.LinkedList;
 import java.util.List;
 
-@Service
 public class MessageService {
 
-	@Autowired
-	private MessageRepository messageRepository;
+	private final MessageRepository messageRepository;
 
-	@Autowired
-	private UserRepository userRepository;
+	private final UserRepository userRepository;
+
+	public MessageService(MessageRepository messageRepository, UserRepository userRepository) {
+		this.messageRepository = messageRepository;
+		this.userRepository = userRepository;
+	}
 
 	public boolean sendMessage(String username, String id, String text){
 		//TODO 幂等性是不是返回true
@@ -47,7 +43,6 @@ public class MessageService {
 	}
 
 	public List<MessageRetrive> pullMessage(int roomId, QueryControlData controlData){
-
 		List<MessageRetrive> messageRetriveList =  messageRepository.queryMessages(roomId,
 				controlData.getPageIndex(),controlData.getPageSize());
 		return messageRetriveList;

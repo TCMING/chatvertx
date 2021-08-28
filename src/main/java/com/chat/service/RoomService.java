@@ -7,25 +7,23 @@ import com.chat.model.RoomDto;
 import com.chat.model.UserDto;
 import com.chat.repository.RoomRepository;
 import com.chat.repository.UserRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
-@Service
 public class RoomService {
-	private Logger logger = LoggerFactory.getLogger(this.getClass());
 
-	@Autowired
 	private RoomRepository roomRepository;
 
-	@Autowired
 	private UserRepository userRepository;
 
+	public RoomService(RoomRepository roomRepository, UserRepository userRepository) {
+		this.roomRepository = roomRepository;
+		this.userRepository = userRepository;
+	}
 
 	//暂时不用内存淘汰，维护全量的room-user信息
-	private ConcurrentHashMap<Integer, Set<String>> roomUsersCache = new ConcurrentHashMap<>(2048);
+	private final ConcurrentHashMap<Integer, Set<String>> roomUsersCache = new ConcurrentHashMap<>(2048);
+
+
 
 	public List<String> queryRoomUsers(int roomId){
 		Set<String> usernames = roomUsersCache.getOrDefault(roomId,new HashSet<>());
@@ -65,7 +63,6 @@ public class RoomService {
 			users.add(username);
 			return true;
 		} catch (Exception e) {
-			logger.error("error" , e);
 			return false;
 		}
 	}
@@ -89,7 +86,6 @@ public class RoomService {
 
 			return true;
 		} catch (Exception e) {
-			logger.error("error" , e);
 			return false;
 		}
 	}
