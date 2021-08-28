@@ -1,22 +1,26 @@
 package com.chat;
 
+import com.chat.model.*;
 import com.chat.repository.MessageRepository;
 import com.chat.repository.RoomRepository;
 import com.chat.repository.UserRepository;
 import com.chat.service.MessageService;
 import com.chat.service.RoomService;
 import com.chat.service.UserService;
+import com.chat.utils.BizCheckUtils;
+import com.chat.utils.ChatException;
+import com.chat.utils.GsonUtils;
+import com.chat.utils.JwtUtils;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.apache.commons.lang3.StringUtils;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 class ChatServer extends AbstractVerticle {
 
@@ -57,7 +61,7 @@ class ChatServer extends AbstractVerticle {
         // user
         router.post("/user").blockingHandler(this::addUser);
         router.get("/userLogin").blockingHandler(this::userLogin);
-        router.get("/user").blockingHandler(this::getUserInfo);
+        router.get("/user/:username").blockingHandler(this::getUserInfo);
 
         //room
         router.post("/room").blockingHandler(this::room);
@@ -76,123 +80,116 @@ class ChatServer extends AbstractVerticle {
     }
 
     private  void roomList(RoutingContext routingContext) {
-        JsonObject json = routingContext.getBody().toJsonObject();
-        System.out.println("roomList " + json.toString());
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "success");
-        result.put("data", json);
+        String json = routingContext.getBody().toString();
+        QueryControlData roomControl = GsonUtils.jsonToBean(json,QueryControlData.class);
+        if(roomControl.getPageIndex()<0){
+            throw new ChatException("invalid input");
+        }
+        List<RoomDto> roomVoList = roomRepository.queryRoomRecord(roomControl);
         // 模拟service调用
-        out(routingContext, Json.encodePrettily(result));
+        out(routingContext, Json.encodePrettily(roomVoList));
     }
 
     private void roomUserList(RoutingContext routingContext) {
         String id = routingContext.request().getParam("roomId");
-        System.out.println("roomUserList " + id);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "getUserByName");
-        out(routingContext, Json.encodePrettily(result));
+        int roomId = Integer.parseInt(id);
+        List<String> users = roomService.queryRoomUsers(roomId);
+        out(routingContext, Json.encodePrettily(users));
     }
 
     private void roomId(RoutingContext routingContext) {
-        String id = routingContext.request().getParam("roomId");
-        System.out.println("roomId " + id);
+        String roomid = routingContext.request().getParam("roomId");
+        try {
+            RoomDto roomDto = roomRepository.queryRoomById(Integer.parseInt(roomid));
+            BizCheckUtils.checkNull(roomDto,"invalid roomId");
+            out(routingContext, Json.encodePrettily(roomDto));
+        }catch (Exception e){
+            throw new ChatException("invalid roomId");
+        }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "getUserByName");
-        out(routingContext, Json.encodePrettily(result));
     }
 
    private void roomLeave(RoutingContext routingContext) {
-        System.out.println("roomLeave");
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "success");
+       String username = routingContext.request().getParam("username");
+       BizCheckUtils.check(roomService.roomLeave(username) , "异常");
         // 模拟service调用
-        out(routingContext, Json.encodePrettily(result));
+        out(routingContext, Json.encodePrettily(true));
     }
 
     private void roomEnter(RoutingContext routingContext) {
-        String id = routingContext.request().getParam("id");
-        System.out.println("roomEnter " + id);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "getUserByName");
-        out(routingContext, Json.encodePrettily(result));
+        String roomId = routingContext.request().getParam("roomId");
+        String username = routingContext.request().getParam("username");
+        BizCheckUtils.check(roomService.enterRoom(Integer.parseInt(roomId) , username) , "房间不存在");
+        out(routingContext, Json.encodePrettily(true));
     }
 
     private void room(RoutingContext routingContext) {
-        JsonObject json = routingContext.getBody().toJsonObject();
-        System.out.println("room: " + json.toString());
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "success");
-        result.put("data", json);
-        // 模拟service调用
-        out(routingContext, Json.encodePrettily(result));
+        try {
+            String json = routingContext.getBody().toString();
+            Room room = GsonUtils.jsonToBean(json, Room.class);
+            BizCheckUtils.check(room != null && StringUtils.isNotBlank(room.getName()),"Invalid input");
+            out(routingContext, Json.encodePrettily(roomRepository.saveRoom(room.getName())));
+        } catch (Exception e) {
+            throw new ChatException("Invalid input");
+        }
     }
 
     private void msgSend(RoutingContext routingContext) {
-        JsonObject json = routingContext.getBody().toJsonObject();
-        System.out.println("msgSend " + json.toString());
+        String json = routingContext.getBody().toString();
+        MessageRetrive message = GsonUtils.jsonToBean(json,MessageRetrive.class);
+        String username = routingContext.request().getParam("username");
+        BizCheckUtils.check(messageService.sendMessage(username,message.getId(),message.getText()), "Invalid input");
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "success");
         // 模拟service调用
-        out(routingContext, Json.encodePrettily(result));
+        out(routingContext, Json.encodePrettily(true));
     }
 
     private void getMsgList(RoutingContext routingContext) {
-        JsonObject json = routingContext.getBody().toJsonObject();
-        System.out.println("getMsgList " + json.toString());
+        String json = routingContext.getBody().toString();
+        QueryControlData queryControlData = GsonUtils.jsonToBean(json,QueryControlData.class);
+        String username = routingContext.request().getParam("username");
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "success");
+        BizCheckUtils.check(queryControlData.getPageIndex() < 0 && queryControlData.getPageSize()>=0,"无效输入");
+
+        UserDto userDto = userRepository.queryUser(username);
+        BizCheckUtils.check(userDto != null && userDto.getRoomId() > 0,"Invalid input");
+
+        List<MessageRetrive> messageRetrives = messageService.pullMessage(userDto.getRoomId() , queryControlData);
         // 模拟service调用
-        out(routingContext, Json.encodePrettily(result));
+        out(routingContext, Json.encodePrettily(messageRetrives));
     }
 
     private void getUserInfo(RoutingContext routingContext) {
         String username = routingContext.request().getParam("username");
-        System.out.println("getUserInfo " + username);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "getUserByName");
-        out(routingContext, Json.encodePrettily(result));
+        BizCheckUtils.checkNull(username, "Invalid username supplied");
+        try {
+            UserDto userDto = userService.queryUserByName(username);
+            BizCheckUtils.checkNull(userDto,"Invalid username supplied");
+            UserResponse userResponse = new UserResponse(userDto.getFirstName(),userDto.getLastName(),
+                    userDto.getEmail(),userDto.getPhone());
+            out(routingContext, Json.encodePrettily(userResponse));
+        }catch (Exception e){
+            throw new ChatException("Invalid username supplied");
+        }
+
     }
 
     private void userLogin(RoutingContext routingContext) {
         String username = routingContext.request().getParam("username");
         String password = routingContext.request().getParam("password");
         System.out.println("userLogin " + username +" "+ password);
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "login");
-        out(routingContext, Json.encodePrettily(result));
+        BizCheckUtils.check(userService.userPasswordCheck(username,password),"Invalid username or password.");
+        String jwtToken = JwtUtils.createToken(username);
+        out(routingContext, Json.encodePrettily(jwtToken));
     }
 
     private void addUser(RoutingContext routingContext) {
-        JsonObject json = routingContext.getBody().toJsonObject();
-        System.out.println("addUser " + json.toString());
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("code", 0);
-        result.put("msg", "success");
-        result.put("data", json);
-
+        String json = routingContext.getBody().toString();
+        UserRequest userRequest = GsonUtils.jsonToBean(json, UserRequest.class);
+        BizCheckUtils.check(userService.registryUser(userRequest),"保存用户异常");
         // 模拟service调用
-        out(routingContext, Json.encodePrettily(result));
+        out(routingContext, Json.encodePrettily(true));
     }
 
     private void out(RoutingContext ctx, String msg) {
