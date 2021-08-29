@@ -15,12 +15,14 @@ import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.redis.client.*;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
 class ChatServer extends AbstractVerticle {
 
+    private String[] serverIps;
     private UserService userService;
     private RoomService roomService;
     private MessageService messageService;
@@ -50,11 +52,16 @@ class ChatServer extends AbstractVerticle {
 
     @Override
     public void start() throws Exception {
+
 //        System.out.println("---------"+Thread.currentThread().getName());
         HttpServer server = vertx.createHttpServer();
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
+
+        router.get("/test").handler(this::test);
+
+        router.post("/updateCluster").blockingHandler(this::updateCluster);
 
         // user
         router.post("/user").blockingHandler(this::addUser);
@@ -221,6 +228,60 @@ class ChatServer extends AbstractVerticle {
         }catch (Exception e){
             routingContext.fail(400,e);
         }
+    }
+
+    private void updateCluster(RoutingContext routingContext){
+        String json = routingContext.getBody().toString();
+        serverIps= json.split(",");
+        RedisClientUtil.initRedis(vertx , serverIps);
+    }
+
+    private void test(RoutingContext routingContext){
+//        Redis.createClient(
+//                vertx,
+//                new RedisOptions()
+//                        .setType(RedisClientType.SENTINEL)
+//                        .addConnectionString("redis://127.0.0.1:26379")
+//                        .addConnectionString("redis://127.0.0.1:26380")
+//                        .addConnectionString("redis://127.0.0.1:26381")
+//
+////                            .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
+////                            .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
+////                            .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
+//                        .setMasterName("mymaster")
+//                        .setRole(RedisRole.MASTER)
+//                        .setMaxPoolSize(8)
+//                        .setMaxWaitingHandlers(8))
+//                        .connect()
+//                        .onSuccess(conn -> {
+//                            System.out.println(("-----con suc"));
+//                            conn.send(Request.cmd(Command.SET).arg("test").arg("7"))
+//                                    .onSuccess(info -> {
+//                                        // do something...
+//                                        System.out.println("-----set successed");
+//                                        System.out.println("---------"+Thread.currentThread().getName());
+//                                        out(routingContext, Json.encodePrettily(true));
+//                                    });
+//                        });
+
+
+        Redis redis = Redis.createClient(
+                vertx,
+                new RedisOptions()
+                        .setType(RedisClientType.SENTINEL)
+                        .addConnectionString("redis://127.0.0.1:26379")
+                        .addConnectionString("redis://127.0.0.1:26380")
+                        .addConnectionString("redis://127.0.0.1:26381")
+                        .setMasterName("mymaster")
+                        .setRole(RedisRole.MASTER)
+                        .setMaxPoolSize(8)
+                        .setMaxWaitingHandlers(8));
+
+                RedisAPI api = RedisAPI.api(redis);
+                api.get("test").onSuccess(value->{
+                    System.out.println(value);
+                    out(routingContext, value.toString());
+                });
     }
 
     private void out(RoutingContext ctx, String msg) {

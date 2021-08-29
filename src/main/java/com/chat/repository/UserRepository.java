@@ -1,6 +1,7 @@
 package com.chat.repository;
 
 
+import com.chat.dao.UserRedisDao;
 import com.chat.model.UserDto;
 
 import java.util.List;
@@ -12,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Version 1.0
  */
 public class UserRepository  {
+
+    private UserRedisDao userRedisDao;
 
     /**
      * 内存维护所有用户信息
@@ -25,7 +28,7 @@ public class UserRepository  {
 
     public boolean saveUser(UserDto userDto){
         try {
-//            userRedisDao.createUser(userDto);
+            userRedisDao.createUser(userDto);
             usersCache.put(userDto.getUsername(), userDto);
         } catch (Exception e) {
             // TODO: 2021/7/26 写内存失败再试一次，再失败就不管了，后面优化
