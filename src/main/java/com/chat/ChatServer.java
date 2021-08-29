@@ -7,10 +7,7 @@ import com.chat.repository.UserRepository;
 import com.chat.service.MessageService;
 import com.chat.service.RoomService;
 import com.chat.service.UserService;
-import com.chat.utils.BizCheckUtils;
-import com.chat.utils.ChatException;
-import com.chat.utils.GsonUtils;
-import com.chat.utils.JwtUtils;
+import com.chat.utils.*;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
@@ -32,6 +29,7 @@ class ChatServer extends AbstractVerticle {
     private UserRepository userRepository;
 
     public static void main(String[] args){
+        BeanFactory.init();
         Vertx.vertx().deployVerticle(new ChatServer());
         // int loopNum = 8;
         // VertxOptions vo = new VertxOptions();
@@ -42,12 +40,12 @@ class ChatServer extends AbstractVerticle {
     }
 
     public ChatServer() {
-        this.messageRepository = new MessageRepository();
-        this.roomRepository = new RoomRepository();
-        this.userRepository = new UserRepository();
-        this.userService = new UserService(userRepository);
-        this.roomService = new RoomService(roomRepository,userRepository);
-        this.messageService = new MessageService(messageRepository,userRepository);
+        this.messageRepository = BeanFactory.getInstance(MessageRepository.class);
+        this.roomRepository = BeanFactory.getInstance(RoomRepository.class);
+        this.userRepository = BeanFactory.getInstance(UserRepository.class);
+        this.userService = BeanFactory.getInstance(UserService.class);
+        this.roomService = BeanFactory.getInstance(RoomService.class);
+        this.messageService = BeanFactory.getInstance(MessageService.class);
     }
 
     @Override
@@ -74,27 +72,36 @@ class ChatServer extends AbstractVerticle {
         // message
         router.post("/message/send").blockingHandler(this::msgSend);
         router.post("/message/retrieve").blockingHandler(this::getMsgList);
-
         server.requestHandler(router);
+
         server.listen(8080);
     }
 
     private  void roomList(RoutingContext routingContext) {
-        String json = routingContext.getBody().toString();
-        QueryControlData roomControl = GsonUtils.jsonToBean(json,QueryControlData.class);
-        if(roomControl.getPageIndex()<0){
-            throw new ChatException("invalid input");
+        try {
+            String json = routingContext.getBody().toString();
+            QueryControlData roomControl = GsonUtils.jsonToBean(json,QueryControlData.class);
+            if(roomControl.getPageIndex()<0){
+                throw new ChatException("invalid input");
+            }
+            List<RoomDto> roomVoList = roomRepository.queryRoomRecord(roomControl);
+            // 模拟service调用
+            out(routingContext, Json.encodePrettily(roomVoList));
+        }catch (Exception e){
+            routingContext.fail(400,e);
         }
-        List<RoomDto> roomVoList = roomRepository.queryRoomRecord(roomControl);
-        // 模拟service调用
-        out(routingContext, Json.encodePrettily(roomVoList));
     }
 
     private void roomUserList(RoutingContext routingContext) {
-        String id = routingContext.request().getParam("roomId");
-        int roomId = Integer.parseInt(id);
-        List<String> users = roomService.queryRoomUsers(roomId);
-        out(routingContext, Json.encodePrettily(users));
+        try {
+            String id = routingContext.request().getParam("roomId");
+            int roomId = Integer.parseInt(id);
+            List<String> users = roomService.queryRoomUsers(roomId);
+            out(routingContext, Json.encodePrettily(users));
+        }catch (Exception e){
+            routingContext.fail(400,e);
+        }
+
     }
 
     private void roomId(RoutingContext routingContext) {
@@ -104,23 +111,30 @@ class ChatServer extends AbstractVerticle {
             BizCheckUtils.checkNull(roomDto,"invalid roomId");
             out(routingContext, Json.encodePrettily(roomDto));
         }catch (Exception e){
-            throw new ChatException("invalid roomId");
+            routingContext.fail(400,e);
         }
-
     }
 
    private void roomLeave(RoutingContext routingContext) {
-       String username = routingContext.request().getParam("username");
-       BizCheckUtils.check(roomService.roomLeave(username) , "异常");
-        // 模拟service调用
-        out(routingContext, Json.encodePrettily(true));
+       try {
+           String username = routingContext.request().getParam("username");
+           BizCheckUtils.check(roomService.roomLeave(username) , "异常");
+           // 模拟service调用
+           out(routingContext, Json.encodePrettily(true));
+       } catch (Exception e) {
+           routingContext.fail(400, e);
+       }
     }
 
     private void roomEnter(RoutingContext routingContext) {
-        String roomId = routingContext.request().getParam("roomId");
-        String username = routingContext.request().getParam("username");
-        BizCheckUtils.check(roomService.enterRoom(Integer.parseInt(roomId) , username) , "房间不存在");
-        out(routingContext, Json.encodePrettily(true));
+        try {
+            String roomId = routingContext.request().getParam("roomId");
+            String username = routingContext.request().getParam("username");
+            BizCheckUtils.check(roomService.enterRoom(Integer.parseInt(roomId) , username) , "房间不存在");
+            out(routingContext, Json.encodePrettily(true));
+        } catch (Exception e) {
+            routingContext.fail(400,e);
+        }
     }
 
     private void room(RoutingContext routingContext) {
@@ -130,66 +144,83 @@ class ChatServer extends AbstractVerticle {
             BizCheckUtils.check(room != null && StringUtils.isNotBlank(room.getName()),"Invalid input");
             out(routingContext, Json.encodePrettily(roomRepository.saveRoom(room.getName())));
         } catch (Exception e) {
-            throw new ChatException("Invalid input");
+            routingContext.fail(400,e);
         }
     }
 
     private void msgSend(RoutingContext routingContext) {
-        String json = routingContext.getBody().toString();
-        MessageRetrive message = GsonUtils.jsonToBean(json,MessageRetrive.class);
-        String username = routingContext.request().getParam("username");
-        BizCheckUtils.check(messageService.sendMessage(username,message.getId(),message.getText()), "Invalid input");
+        try {
+            String json = routingContext.getBody().toString();
+            MessageRetrive message = GsonUtils.jsonToBean(json,MessageRetrive.class);
+            String username = routingContext.request().getParam("username");
+            BizCheckUtils.check(messageService.sendMessage(username,message.getId(),message.getText()), "Invalid input");
 
-        // 模拟service调用
-        out(routingContext, Json.encodePrettily(true));
+            // 模拟service调用
+            out(routingContext, Json.encodePrettily(true));
+        }catch (Exception e){
+            routingContext.fail(400,e);
+        }
     }
 
     private void getMsgList(RoutingContext routingContext) {
-        String json = routingContext.getBody().toString();
-        QueryControlData queryControlData = GsonUtils.jsonToBean(json,QueryControlData.class);
-        String username = routingContext.request().getParam("username");
+        try {
+            String json = routingContext.getBody().toString();
+            QueryControlData queryControlData = GsonUtils.jsonToBean(json,QueryControlData.class);
+            String username = routingContext.request().getParam("username");
 
-        BizCheckUtils.check(queryControlData.getPageIndex() < 0 && queryControlData.getPageSize()>=0,"无效输入");
+            BizCheckUtils.check(queryControlData.getPageIndex() < 0 && queryControlData.getPageSize()>=0,"无效输入");
 
-        UserDto userDto = userRepository.queryUser(username);
-        BizCheckUtils.check(userDto != null && userDto.getRoomId() > 0,"Invalid input");
+            UserDto userDto = userRepository.queryUser(username);
+            BizCheckUtils.check(userDto != null && userDto.getRoomId() > 0,"Invalid input");
 
-        List<MessageRetrive> messageRetrives = messageService.pullMessage(userDto.getRoomId() , queryControlData);
+            List<MessageRetrive> messageRetrives = messageService.pullMessage(userDto.getRoomId() , queryControlData);
+            out(routingContext, Json.encodePrettily(messageRetrives));
+        }catch (Exception e){
+            routingContext.fail(400,e);
+        }
         // 模拟service调用
-        out(routingContext, Json.encodePrettily(messageRetrives));
+
     }
 
     private void getUserInfo(RoutingContext routingContext) {
         String username = routingContext.request().getParam("username");
 
-        BizCheckUtils.checkNull(username, "Invalid username supplied");
         try {
+            BizCheckUtils.checkNull(username, "Invalid username supplied");
             UserDto userDto = userService.queryUserByName(username);
             BizCheckUtils.checkNull(userDto,"Invalid username supplied");
             UserResponse userResponse = new UserResponse(userDto.getFirstName(),userDto.getLastName(),
                     userDto.getEmail(),userDto.getPhone());
             out(routingContext, Json.encodePrettily(userResponse));
         }catch (Exception e){
-            throw new ChatException("Invalid username supplied");
+            routingContext.fail(400,e);
         }
 
     }
 
     private void userLogin(RoutingContext routingContext) {
-        String username = routingContext.request().getParam("username");
-        String password = routingContext.request().getParam("password");
-        System.out.println("userLogin " + username +" "+ password);
-        BizCheckUtils.check(userService.userPasswordCheck(username,password),"Invalid username or password.");
-        String jwtToken = JwtUtils.createToken(username);
-        out(routingContext, Json.encodePrettily(jwtToken));
+        try {
+            String username = routingContext.request().getParam("username");
+            String password = routingContext.request().getParam("password");
+            System.out.println("userLogin " + username +" "+ password);
+            BizCheckUtils.check(userService.userPasswordCheck(username,password),"Invalid username or password.");
+            String jwtToken = JwtUtils.createToken(username);
+            out(routingContext, Json.encodePrettily(jwtToken));
+        }catch (Exception e){
+            routingContext.fail(400,e);
+        }
     }
 
     private void addUser(RoutingContext routingContext) {
-        String json = routingContext.getBody().toString();
-        UserRequest userRequest = GsonUtils.jsonToBean(json, UserRequest.class);
-        BizCheckUtils.check(userService.registryUser(userRequest),"保存用户异常");
-        // 模拟service调用
-        out(routingContext, Json.encodePrettily(true));
+        try {
+            String json = routingContext.getBody().toString();
+            UserRequest userRequest = GsonUtils.jsonToBean(json, UserRequest.class);
+            BizCheckUtils.check(userService.registryUser(userRequest),"保存用户异常");
+            // 模拟service调用
+            out(routingContext, Json.encodePrettily(true));
+        }catch (Exception e){
+            routingContext.fail(400,e);
+        }
     }
 
     private void out(RoutingContext ctx, String msg) {
