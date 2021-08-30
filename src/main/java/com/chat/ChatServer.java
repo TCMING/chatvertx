@@ -10,6 +10,7 @@ import com.chat.service.UserService;
 import com.chat.utils.*;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
@@ -20,8 +21,9 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
-class ChatServer extends AbstractVerticle {
+public class ChatServer extends AbstractVerticle {
 
+    public static Vertx vertxStatic;
     private String[] serverIps;
     private UserService userService;
     private RoomService roomService;
@@ -33,12 +35,12 @@ class ChatServer extends AbstractVerticle {
     public static void main(String[] args){
         BeanFactory.init();
         Vertx.vertx().deployVerticle(new ChatServer());
-        // int loopNum = 8;
-        // VertxOptions vo = new VertxOptions();
-        // vo.setEventLoopPoolSize(loopNum);
-        // Vertx vertx = Vertx.vertx(vo);
-        // for(int i=0; i<loopNum; i++)
-        //     vertx.deployVerticle(new ChatServer());
+//         int loopNum = 8;
+//         VertxOptions vo = new VertxOptions();
+//         vo.setEventLoopPoolSize(loopNum);
+//         Vertx vertx = Vertx.vertx(vo);
+//         for(int i=0; i<loopNum; i++)
+//             vertx.deployVerticle(new ChatServer());
     }
 
     public ChatServer() {
@@ -54,6 +56,8 @@ class ChatServer extends AbstractVerticle {
     public void start() throws Exception {
 
 //        System.out.println("---------"+Thread.currentThread().getName());
+//        System.out.println("---------"+vertx.toString());
+        vertxStatic = vertx;
         HttpServer server = vertx.createHttpServer();
 
         Router router = Router.router(vertx);
@@ -232,8 +236,7 @@ class ChatServer extends AbstractVerticle {
 
     private void updateCluster(RoutingContext routingContext){
         String json = routingContext.getBody().toString();
-        serverIps= json.split(",");
-        RedisClientUtil.initRedis(vertx , serverIps);
+        RedisClientUtil.initRedisServer(json);
     }
 
     private void test(RoutingContext routingContext){
@@ -277,11 +280,12 @@ class ChatServer extends AbstractVerticle {
                         .setMaxPoolSize(8)
                         .setMaxWaitingHandlers(8));
 
-                RedisAPI api = RedisAPI.api(redis);
-                api.get("test").onSuccess(value->{
-                    System.out.println(value);
-                    out(routingContext, value.toString());
-                });
+        RedisAPI api = RedisAPI.api(redis);
+        api.get("test").onSuccess(value->{
+            System.out.println("---------"+Thread.currentThread().getName());
+            System.out.println(value);
+            out(routingContext, value.toString());
+        });
     }
 
     private void out(RoutingContext ctx, String msg) {

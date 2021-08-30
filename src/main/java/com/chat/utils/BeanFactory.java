@@ -23,7 +23,7 @@ public class BeanFactory {
         RoomService roomService = new RoomService(roomRepository, userRepository);
         MessageService messageService = new MessageService(messageRepository, userRepository);
 
-        instances.put(MessageRepository.class,roomRepository);
+        instances.put(MessageRepository.class,messageRepository);
         instances.put(RoomRepository.class,roomRepository);
         instances.put(UserRepository.class,userRepository);
         instances.put(UserService.class,userService);
