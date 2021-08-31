@@ -3,7 +3,6 @@ package com.chat.utils;
 import com.chat.ChatServer;
 import io.vertx.core.Vertx;
 import io.vertx.redis.client.*;
-import io.vertx.redis.client.impl.types.NumberType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +51,6 @@ public class RedisClientUtil {
                         });
             });
 
-        System.out.println("-----test asyn2");
         Redis slaveClient2 = Redis.createClient(
             vertxStatic,
             new RedisOptions()
@@ -72,7 +70,6 @@ public class RedisClientUtil {
                         });
             });
 
-        System.out.println("-----test asyn3");
 //        初始化哨兵，指定受监控的主节点
         Redis sentiClient1 = Redis.createClient(
             vertxStatic,
@@ -145,13 +142,14 @@ public class RedisClientUtil {
             });
     }
 
-    //只受/updateCluster调用
+    //只受updateCluster调用
+    //需要获取分布式锁
     public static String[] initRedisServer(String json){
         String[] serverIps= json.split(",");
         vertxStatic = ChatServer.vertxStatic;
         String[] ipsNew = convertIp(serverIps);
         serverIpsStatic = ipsNew;
-        //保存ip,为重启后初始化高可用客户端
+        //保存ip到redis.properties,为了重启后初始化高可用客户端
         FileOutputStream oFile = null;//true表示追加打开
         try {
             oFile = new FileOutputStream("redis.properties", false);
@@ -162,7 +160,6 @@ public class RedisClientUtil {
         }
 
         //初始化redis server
-        //获取分布式锁，使用单一redis节点，需要初始化主从哨兵前完成
         Redis lockClient = Redis.createClient(
                 vertxStatic,
                 new RedisOptions()
@@ -171,6 +168,8 @@ public class RedisClientUtil {
 //                        .addConnectionString("redis://"+serverIps[0]+"6379")
         );
         RedisAPI lockAPI = RedisAPI.api(lockClient);
+
+        //获取分布式锁，使用单一redis节点，需要在初始化主从、哨兵架构前完成
         List args = new ArrayList<String>();
         args.add(lock_key);
         String setValue = UUID.randomUUID().toString();
@@ -185,9 +184,12 @@ public class RedisClientUtil {
             isInitedArgs.add(isServerInited);
             lockAPI.exists(isInitedArgs).onSuccess(exsist->{
                 if(exsist.toString().equals("0")){
+                    // TODO: 2021/8/31 注释了初始化redis server
                     //init();
+                    //标记已完成哨兵架构初始化
                     isInitedArgs.add("1");
                     lockAPI.set(isInitedArgs).onSuccess(value3 ->{
+                        //释放分布式锁
                         ArrayList delArgs = new ArrayList<String>();
                         String script =
                                 "if redis.call('get',KEYS[1]) == ARGV[1] then" +
@@ -204,6 +206,22 @@ public class RedisClientUtil {
                             lockAPI.close();
                         });
                     });
+                }else{
+                    ArrayList delArgs = new ArrayList<String>();
+                    String script =
+                            "if redis.call('get',KEYS[1]) == ARGV[1] then" +
+                                    "   return redis.call('del',KEYS[1]) " +
+                                    "else" +
+                                    "   return 0 " +
+                                    "end";
+                    delArgs.add(script);
+                    delArgs.add("1");
+                    delArgs.add(lock_key);
+                    delArgs.add(setValue);
+                    lockAPI.eval(delArgs).onSuccess(value2->{
+                        logger.info("---删除锁成功");
+                        lockAPI.close();
+                    });
                 }
             });
 
@@ -212,20 +230,27 @@ public class RedisClientUtil {
         return serverIpsStatic;
     }
 
+
     /**
-     * 初始化原始客户端
+     * 初始化高可用客户端
      * @return
      */
     public static Redis initRedisClient(){
             //重新加载serverIpsStatic
-//            if (serverIpsStatic == null) {
-//                File file = new File("redis.properties");
-//                try {
-//                    prop.load(new FileInputStream(file));
-//                } catch (IOException e) {
-//                }
-//            }
-
+            if (serverIpsStatic == null) {
+                File file = new File("redis.properties");
+                try {
+                    prop.load(new FileInputStream(file));
+                    String json = prop.getProperty("ips");
+                    String[] ips = json.split(",");
+                    serverIpsStatic = convertIp(ips);
+                } catch (IOException e) {
+                    logger.error("--error",e);
+                }
+            }
+            if(serverIpsStatic == null){
+                return null;
+            }
             //初始化RedisClient
             redisClient = Redis.createClient(
                     vertxStatic,
@@ -249,8 +274,6 @@ public class RedisClientUtil {
         if(redisAPI != null){
             return redisAPI;
         }else{
-            //从redis单机中读取serverIps
-
             synchronized (RedisClientUtil.class){
                 if(redisAPI==null){
                     redisClient = initRedisClient();

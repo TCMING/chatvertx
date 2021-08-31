@@ -3,6 +3,8 @@ package com.chat.repository;
 
 import com.chat.dao.UserRedisDao;
 import com.chat.model.UserDto;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,9 +14,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Date 2021年7月3日 17:45
  * @Version 1.0
  */
-public class UserRepository  {
+public class UserRepository implements InitializingBean {
 
-    private UserRedisDao userRedisDao;
+    private UserRedisDao userRedisDao ;
+
+    public UserRepository(UserRedisDao userRedisDao){
+        this.userRedisDao = userRedisDao;
+    }
 
     /**
      * 内存维护所有用户信息
@@ -27,13 +33,8 @@ public class UserRepository  {
     }
 
     public boolean saveUser(UserDto userDto){
-        try {
-            userRedisDao.createUser(userDto);
-            usersCache.put(userDto.getUsername(), userDto);
-        } catch (Exception e) {
-            // TODO: 2021/7/26 写内存失败再试一次，再失败就不管了，后面优化
-            usersCache.put(userDto.getUsername(), userDto);
-        }
+        userRedisDao.createUser(userDto);
+        usersCache.put(userDto.getUsername(), userDto);
         return true;
     }
 
@@ -42,6 +43,17 @@ public class UserRepository  {
     public boolean updateUser(int roomId , String username){
 //        return userDao.updateUser(roomId , username) <= 1;
         return false;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        usersCache = new ConcurrentHashMap<>(2048);
+//        List<UserDto> roomDtos = userRedisDao.queryAll();
+//        if(!CollectionUtils.isEmpty(roomDtos)){
+//            for(UserDto userDto: roomDtos){
+//                usersCache.put(userDto.getUsername(),userDto);
+//            }
+//        }
     }
 
 }

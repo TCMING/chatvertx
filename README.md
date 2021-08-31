@@ -3,3 +3,5 @@ vertical并发、与核数的关系
 20210821待完善：  
 1.bean初始化及get  
 2.非阻塞调用下游接口  
+3.目前初始化了多个eventloop，但是一个handler落到了一个eventloop上  
+4.序列化协议，http，存取redis  

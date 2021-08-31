@@ -1,5 +1,6 @@
 package com.chat.utils;
 
+import com.chat.dao.UserRedisDao;
 import com.chat.repository.MessageRepository;
 import com.chat.repository.RoomRepository;
 import com.chat.repository.UserRepository;
@@ -15,14 +16,18 @@ public class BeanFactory {
     private static final Map<Class,Object> instances = new HashMap<>();
 
     public static void init(){
+
+        UserRedisDao userRedisDao = new UserRedisDao();
+
         MessageRepository messageRepository = new MessageRepository();
         RoomRepository roomRepository = new RoomRepository();
-        UserRepository userRepository = new UserRepository();
+        UserRepository userRepository = new UserRepository(userRedisDao);
 
         UserService userService = new UserService(userRepository);
         RoomService roomService = new RoomService(roomRepository, userRepository);
         MessageService messageService = new MessageService(messageRepository, userRepository);
 
+        instances.put(UserRedisDao.class,userRedisDao);
         instances.put(MessageRepository.class,messageRepository);
         instances.put(RoomRepository.class,roomRepository);
         instances.put(UserRepository.class,userRepository);
