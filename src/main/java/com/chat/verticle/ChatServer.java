@@ -1,4 +1,4 @@
-package com.chat;
+package com.chat.verticle;
 
 import com.chat.model.*;
 import com.chat.repository.MessageRepository;
@@ -10,9 +10,10 @@ import com.chat.service.UserService;
 import com.chat.utils.*;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -24,24 +25,12 @@ import java.util.List;
 public class ChatServer extends AbstractVerticle {
 
     public static Vertx vertxStatic;
-    private String[] serverIps;
     private UserService userService;
     private RoomService roomService;
     private MessageService messageService;
     private MessageRepository messageRepository;
     private RoomRepository roomRepository;
     private UserRepository userRepository;
-
-    public static void main(String[] args){
-        BeanFactory.init();
-        Vertx.vertx().deployVerticle(new ChatServer());
-//         int loopNum = 8;
-//         VertxOptions vo = new VertxOptions();
-//         vo.setEventLoopPoolSize(loopNum);
-//         Vertx vertx = Vertx.vertx(vo);
-//         for(int i=0; i<loopNum; i++)
-//             vertx.deployVerticle(new ChatServer());
-    }
 
     public ChatServer() {
         this.messageRepository = BeanFactory.getInstance(MessageRepository.class);
@@ -55,36 +44,35 @@ public class ChatServer extends AbstractVerticle {
     @Override
     public void start() throws Exception {
 
-//        System.out.println("---------"+Thread.currentThread().getName());
-//        System.out.println("---------"+vertx.toString());
+        System.out.println("---------"+Thread.currentThread().getName());
         vertxStatic = vertx;
-        HttpServer server = vertx.createHttpServer();
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
 
         router.get("/test").handler(this::test);
 
-        router.post("/updateCluster").blockingHandler(this::updateCluster);
+        router.post("/updateCluster").handler(this::updateCluster);
 
         // user
-        router.post("/user").blockingHandler(this::addUser);
-        router.get("/userLogin").blockingHandler(this::userLogin);
-        router.get("/user/:username").blockingHandler(this::getUserInfo);
+        router.post("/user").handler(this::addUser);
+        router.get("/userLogin").handler(this::userLogin);
+        router.get("/user/:username").handler(this::getUserInfo);
 
         //room
-        router.post("/room").blockingHandler(this::room);
-        router.put("/room/:roomId/enter").blockingHandler(this::roomEnter);
-        router.put("/room/roomLeave").blockingHandler(this::roomLeave);
-        router.get("/room/:roomId").blockingHandler(this::roomId);
-        router.post("/roomList").blockingHandler(this::roomList);
-        router.get("/room/:roomId/users").blockingHandler(this::roomUserList);
+        router.post("/room").handler(this::room);
+        router.put("/room/:roomId/enter").handler(this::roomEnter);
+        router.put("/room/roomLeave").handler(this::roomLeave);
+        router.get("/room/:roomId").handler(this::roomId);
+        router.post("/roomList").handler(this::roomList);
+        router.get("/room/:roomId/users").handler(this::roomUserList);
 
         // message
-        router.post("/message/send").blockingHandler(this::msgSend);
-        router.post("/message/retrieve").blockingHandler(this::getMsgList);
-        server.requestHandler(router);
+        router.post("/message/send").handler(this::msgSend);
+        router.post("/message/retrieve").handler(this::getMsgList);
 
+        HttpServer server = vertx.createHttpServer();
+        server.requestHandler(router);
         server.listen(8080);
     }
 
@@ -236,38 +224,16 @@ public class ChatServer extends AbstractVerticle {
 
     private void updateCluster(RoutingContext routingContext){
         String json = routingContext.getBody().toString();
-        RedisClientUtil.initRedisServer(json);
+        EventBus bus = vertx.eventBus();
+        bus.<Boolean>request(RedisVerticle.UPDATE_CLUSTER_ADD, json, reply -> {
+            if( reply.succeeded() ){
+                boolean success = reply.result().body().booleanValue();
+                out(routingContext, Json.encodePrettily(success));
+            }
+        });
     }
 
     private void test(RoutingContext routingContext){
-//        Redis.createClient(
-//                vertx,
-//                new RedisOptions()
-//                        .setType(RedisClientType.SENTINEL)
-//                        .addConnectionString("redis://127.0.0.1:26379")
-//                        .addConnectionString("redis://127.0.0.1:26380")
-//                        .addConnectionString("redis://127.0.0.1:26381")
-//
-////                            .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
-////                            .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
-////                            .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
-//                        .setMasterName("mymaster")
-//                        .setRole(RedisRole.MASTER)
-//                        .setMaxPoolSize(8)
-//                        .setMaxWaitingHandlers(8))
-//                        .connect()
-//                        .onSuccess(conn -> {
-//                            System.out.println(("-----con suc"));
-//                            conn.send(Request.cmd(Command.SET).arg("test").arg("7"))
-//                                    .onSuccess(info -> {
-//                                        // do something...
-//                                        System.out.println("-----set successed");
-//                                        System.out.println("---------"+Thread.currentThread().getName());
-//                                        out(routingContext, Json.encodePrettily(true));
-//                                    });
-//                        });
-
-
         Redis redis = Redis.createClient(
                 vertx,
                 new RedisOptions()

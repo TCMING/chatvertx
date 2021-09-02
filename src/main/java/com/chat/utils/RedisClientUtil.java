@@ -1,6 +1,6 @@
 package com.chat.utils;
 
-import com.chat.ChatServer;
+import com.chat.verticle.RedisVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.redis.client.*;
 import org.slf4j.Logger;
@@ -144,9 +144,9 @@ public class RedisClientUtil {
 
     //只受updateCluster调用
     //需要获取分布式锁
-    public static String[] initRedisServer(String json){
+    public static boolean initRedisServer(String json){
         String[] serverIps= json.split(",");
-        vertxStatic = ChatServer.vertxStatic;
+        vertxStatic = RedisVerticle.vertxStatic;
         String[] ipsNew = convertIp(serverIps);
         serverIpsStatic = ipsNew;
         //保存ip到redis.properties,为了重启后初始化高可用客户端
@@ -227,7 +227,7 @@ public class RedisClientUtil {
 
         });
 
-        return serverIpsStatic;
+        return true;
     }
 
 
@@ -264,8 +264,10 @@ public class RedisClientUtil {
 //                            .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
                     .setMasterName("mymaster")
                     .setRole(RedisRole.MASTER)
+                    .setPoolCleanerInterval(-1)
+                    .setPoolRecycleTimeout(120000)
                     .setMaxPoolSize(8)
-                    .setMaxWaitingHandlers(16));
+                    .setMaxWaitingHandlers(8));
 
             return redisClient;
     }

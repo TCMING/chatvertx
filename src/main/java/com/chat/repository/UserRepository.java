@@ -3,8 +3,8 @@ package com.chat.repository;
 
 import com.chat.dao.UserRedisDao;
 import com.chat.model.UserDto;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.util.CollectionUtils;
+//import org.springframework.beans.factory.InitializingBean;
+//import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Date 2021年7月3日 17:45
  * @Version 1.0
  */
-public class UserRepository implements InitializingBean {
+public class UserRepository {
 
     private UserRedisDao userRedisDao ;
 
@@ -45,15 +45,15 @@ public class UserRepository implements InitializingBean {
         return false;
     }
 
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        usersCache = new ConcurrentHashMap<>(2048);
-//        List<UserDto> roomDtos = userRedisDao.queryAll();
-//        if(!CollectionUtils.isEmpty(roomDtos)){
-//            for(UserDto userDto: roomDtos){
-//                usersCache.put(userDto.getUsername(),userDto);
-//            }
-//        }
-    }
+//    @Override
+//    public void afterPropertiesSet() throws Exception {
+//        usersCache = new ConcurrentHashMap<>(2048);
+////        List<UserDto> roomDtos = userRedisDao.queryAll();
+////        if(!CollectionUtils.isEmpty(roomDtos)){
+////            for(UserDto userDto: roomDtos){
+////                usersCache.put(userDto.getUsername(),userDto);
+////            }
+////        }
+//    }
 
 }

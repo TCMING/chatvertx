@@ -3,8 +3,6 @@ package com.chat.dao;
 import com.chat.model.UserDto;
 import com.chat.utils.GsonUtils;
 import com.chat.utils.RedisClientUtil;
-import io.vertx.core.json.JsonObject;
-import io.vertx.core.json.impl.JsonUtil;
 
 import java.util.ArrayList;
 import java.util.List;
