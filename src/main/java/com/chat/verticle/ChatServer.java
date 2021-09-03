@@ -24,7 +24,6 @@ import java.util.List;
 
 public class ChatServer extends AbstractVerticle {
 
-    public static Vertx vertxStatic;
     private UserService userService;
     private RoomService roomService;
     private MessageService messageService;
@@ -45,7 +44,6 @@ public class ChatServer extends AbstractVerticle {
     public void start() throws Exception {
 
         System.out.println("---------"+Thread.currentThread().getName());
-        vertxStatic = vertx;
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());

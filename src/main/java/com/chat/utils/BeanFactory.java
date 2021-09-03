@@ -21,7 +21,7 @@ public class BeanFactory {
 
         MessageRepository messageRepository = new MessageRepository();
         RoomRepository roomRepository = new RoomRepository();
-        UserRepository userRepository = new UserRepository(userRedisDao);
+        UserRepository userRepository = new UserRepository();
 
         UserService userService = new UserService(userRepository);
         RoomService roomService = new RoomService(roomRepository, userRepository);

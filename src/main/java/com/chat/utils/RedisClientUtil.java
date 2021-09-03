@@ -1,7 +1,6 @@
 package com.chat.utils;
 
-import com.chat.verticle.RedisVerticle;
-import io.vertx.core.Vertx;
+import com.chat.Main;
 import io.vertx.redis.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,11 +12,11 @@ import java.util.*;
 
 public class RedisClientUtil {
 
-    public static Redis redisClient;
+    private static Logger logger = LoggerFactory.getLogger(RedisClientUtil.class);
 
-    public static RedisAPI redisAPI;
+    private static Redis redisClient;
 
-    private static Vertx vertxStatic;
+    private static RedisAPI redisAPI;
 
     private static String[] serverIpsStatic;
 
@@ -27,13 +26,11 @@ public class RedisClientUtil {
 
     static Properties prop = new Properties();
 
-    private static Logger logger = LoggerFactory.getLogger(RedisClientUtil.class);
-
     public static void init(){
 
 //        初始化主从关系
         Redis slaveClient1 = Redis.createClient(
-            vertxStatic,
+                Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
                     .addConnectionString("redis://127.0.0.1:6380")
@@ -52,7 +49,7 @@ public class RedisClientUtil {
             });
 
         Redis slaveClient2 = Redis.createClient(
-            vertxStatic,
+                Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
                     .addConnectionString("redis://127.0.0.1:6381")
@@ -72,7 +69,7 @@ public class RedisClientUtil {
 
 //        初始化哨兵，指定受监控的主节点
         Redis sentiClient1 = Redis.createClient(
-            vertxStatic,
+                Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
                     .addConnectionString("redis://127.0.0.1:26379")
@@ -96,7 +93,7 @@ public class RedisClientUtil {
 
         System.out.println("-----test asyn4");
         Redis sentiClient2 = Redis.createClient(
-            vertxStatic,
+                Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
                     .addConnectionString("redis://127.0.0.1:26380")
@@ -119,7 +116,7 @@ public class RedisClientUtil {
             });
 
         Redis sentiClient3 = Redis.createClient(
-            vertxStatic,
+                Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
                     .addConnectionString("redis://127.0.0.1:26381")
@@ -146,7 +143,6 @@ public class RedisClientUtil {
     //需要获取分布式锁
     public static boolean initRedisServer(String json){
         String[] serverIps= json.split(",");
-        vertxStatic = RedisVerticle.vertxStatic;
         String[] ipsNew = convertIp(serverIps);
         serverIpsStatic = ipsNew;
         //保存ip到redis.properties,为了重启后初始化高可用客户端
@@ -161,7 +157,7 @@ public class RedisClientUtil {
 
         //初始化redis server
         Redis lockClient = Redis.createClient(
-                vertxStatic,
+                Main.vertx,
                 new RedisOptions()
                         .setType(RedisClientType.STANDALONE)
                         .addConnectionString("redis://127.0.0.1:6381")
@@ -235,55 +231,40 @@ public class RedisClientUtil {
      * 初始化高可用客户端
      * @return
      */
-    public static Redis initRedisClient(){
-            //重新加载serverIpsStatic
-            if (serverIpsStatic == null) {
-                File file = new File("redis.properties");
-                try {
-                    prop.load(new FileInputStream(file));
-                    String json = prop.getProperty("ips");
-                    String[] ips = json.split(",");
-                    serverIpsStatic = convertIp(ips);
-                } catch (IOException e) {
-                    logger.error("--error",e);
-                }
+    public static void initRedisClient(){
+        //重新加载serverIpsStatic
+        if (serverIpsStatic == null) {
+            File file = new File("redis.properties");
+            try {
+                prop.load(new FileInputStream(file));
+                String json = prop.getProperty("ips");
+                String[] ips = json.split(",");
+                serverIpsStatic = convertIp(ips);
+            } catch (IOException e) {
+                logger.error("--error", e);
             }
-            if(serverIpsStatic == null){
-                return null;
-            }
-            //初始化RedisClient
-            redisClient = Redis.createClient(
-                    vertxStatic,
-                    new RedisOptions()
-                    .setType(RedisClientType.SENTINEL)
-                    .addConnectionString("redis://127.0.0.1:26379")
-                    .addConnectionString("redis://127.0.0.1:26380")
-                    .addConnectionString("redis://127.0.0.1:26381")
+        }
+        BizCheckUtils.checkNull(serverIpsStatic,"serverIpsStatic初始化失败");
+        //初始化RedisClient
+        redisClient = Redis.createClient(
+                Main.vertx,
+                new RedisOptions()
+                        .setType(RedisClientType.SENTINEL)
+                        .addConnectionString("redis://127.0.0.1:26379")
+                        .addConnectionString("redis://127.0.0.1:26380")
+                        .addConnectionString("redis://127.0.0.1:26381")
 //                            .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
 //                            .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
 //                            .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
-                    .setMasterName("mymaster")
-                    .setRole(RedisRole.MASTER)
-                    .setPoolCleanerInterval(-1)
-                    .setPoolRecycleTimeout(120000)
-                    .setMaxPoolSize(8)
-                    .setMaxWaitingHandlers(8));
+                        .setMasterName("mymaster")
+                        .setRole(RedisRole.MASTER)
+                        .setPoolCleanerInterval(-1)
+                        .setPoolRecycleTimeout(120000)
+                        .setMaxPoolSize(8)
+                        .setMaxWaitingHandlers(8));
 
-            return redisClient;
-    }
-
-    public static  RedisAPI initRedisAPI(){
-        if(redisAPI != null){
-            return redisAPI;
-        }else{
-            synchronized (RedisClientUtil.class){
-                if(redisAPI==null){
-                    redisClient = initRedisClient();
-                    redisAPI = RedisAPI.api(redisClient);
-                }
-            }
-            return redisAPI;
-        }
+        redisAPI = RedisAPI.api(redisClient);
+        BizCheckUtils.checkNull(redisAPI,"redisAPI初始化失败");
     }
 
     public static String[] convertIp(String[] serverIps){
@@ -305,4 +286,8 @@ public class RedisClientUtil {
         return ipsNew;
     }
 
+    public static RedisAPI getRedisAPI() {
+        BizCheckUtils.checkNull(redisAPI,"redisApi未初始化完成");
+        return redisAPI;
+    }
 }

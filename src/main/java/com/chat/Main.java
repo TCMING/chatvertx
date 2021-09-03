@@ -8,10 +8,12 @@ import io.vertx.core.Vertx;
 
 public class Main {
 
+    public static Vertx vertx;
+
     public static void main(String[] args) {
-        Vertx vertx = Vertx.vertx();
+        vertx = Vertx.vertx();
         BeanFactory.init();
         vertx.deployVerticle(ChatServer.class, new DeploymentOptions().setInstances(8));
-        vertx.deployVerticle(RedisVerticle.class, new DeploymentOptions().setWorker(true).setInstances(1));
+        vertx.deployVerticle(RedisVerticle.class, new DeploymentOptions().setWorker(true).setInstances(2));
     }
 }

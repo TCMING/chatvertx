@@ -1,13 +1,14 @@
 package com.chat.repository;
 
-
-import com.chat.dao.UserRedisDao;
+import com.chat.Main;
 import com.chat.model.UserDto;
-//import org.springframework.beans.factory.InitializingBean;
-//import org.springframework.util.CollectionUtils;
+import com.chat.model.UserDtoCodec;
+import com.chat.verticle.RedisVerticle;
+import com.google.gson.JsonObject;
+import io.vertx.core.eventbus.EventBus;
 
-import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @Author tianchengming
@@ -16,44 +17,34 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class UserRepository {
 
-    private UserRedisDao userRedisDao ;
-
-    public UserRepository(UserRedisDao userRedisDao){
-        this.userRedisDao = userRedisDao;
-    }
-
-    /**
-     * 内存维护所有用户信息
-     */
-    private ConcurrentHashMap<String, UserDto> usersCache;
 
     public UserDto queryUser(String userName){
-        UserDto userDto = usersCache.get(userName);
-        return userDto;
+        AtomicReference<UserDto> userDtoRef = new AtomicReference<>();
+        EventBus bus = Main.vertx.eventBus();
+        bus.registerCodec(UserDtoCodec.create());
+        bus.<UserDto>request(RedisVerticle.REDIS_USER_SINGLE_QUERY,userName,reply ->{
+            if(reply.succeeded()){
+                UserDto userDto = reply.result().body();
+                userDtoRef.set(userDto);
+            }
+        });
+        return userDtoRef.get();
     }
 
     public boolean saveUser(UserDto userDto){
-        userRedisDao.createUser(userDto);
-        usersCache.put(userDto.getUsername(), userDto);
-        return true;
+        if(queryUser(userDto.getUsername()) != null){
+            return true;
+        }
+        EventBus bus = Main.vertx.eventBus();
+        AtomicBoolean result = new AtomicBoolean(false);
+        bus.<Boolean>request(RedisVerticle.REDIS_USER_CREATE,userDto,reply ->{
+            if(reply.succeeded()){
+                result.set(reply.result().body());
+            }else{
+                result.set(false);
+            }
+        });
+        return result.get();
     }
-
-    //用户名与房间关系放到缓存，暂时不用
-    @Deprecated
-    public boolean updateUser(int roomId , String username){
-//        return userDao.updateUser(roomId , username) <= 1;
-        return false;
-    }
-
-//    @Override
-//    public void afterPropertiesSet() throws Exception {
-//        usersCache = new ConcurrentHashMap<>(2048);
-////        List<UserDto> roomDtos = userRedisDao.queryAll();
-////        if(!CollectionUtils.isEmpty(roomDtos)){
-////            for(UserDto userDto: roomDtos){
-////                usersCache.put(userDto.getUsername(),userDto);
-////            }
-////        }
-//    }
 
 }
