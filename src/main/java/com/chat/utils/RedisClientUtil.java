@@ -33,108 +33,128 @@ public class RedisClientUtil {
                 Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://127.0.0.1:6380")
-//                        .addConnectionString("redis://"+serverIpsStatic[1]+"6379")
+                    .addConnectionString("redis://39.107.249.226:6379")
+                    //.addConnectionString("redis://127.0.0.1:6380")
+                    //.addConnectionString("redis://"+serverIpsStatic[1]+"6379")
             );
         slaveClient1
             .connect()
             .onSuccess(conn -> {
-                conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
-    //                    conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
+                conn.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
+                //conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
+                //conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
                         .onSuccess(info -> {
                             // do something...
                             System.out.println("----set slave1");
-                            slaveClient1.close();
-                        });
-            });
+                            Redis slaveClient2 = Redis.createClient(
+                                    Main.vertx,
+                                    new RedisOptions()
+                                            .setType(RedisClientType.STANDALONE)
+                                            .addConnectionString("redis://39.105.154.114:6379")
+                                            //.addConnectionString("redis://127.0.0.1:6381")
+                                            //.addConnectionString("redis://"+serverIpsStatic[2]+"6379")
+                            );
 
-        Redis slaveClient2 = Redis.createClient(
-                Main.vertx,
-            new RedisOptions()
-                    .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://127.0.0.1:6381")
-//                        .addConnectionString("redis://"+serverIpsStatic[2]+"6379")
-            );
-        slaveClient2
-            .connect()
-            .onSuccess(conn -> {
-                conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
-//                    conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
-                        .onSuccess(info -> {
-                            // do something...
-                            System.out.println("----set slave2");
-                            slaveClient2.close();
-                        });
-            });
+                            //slave2-----------------------------------------
+                            slaveClient2
+                                    .connect()
+                                    .onSuccess(conn2 -> {
+                                        conn.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
+                                        //conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
+                                        //conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
+                                                .onSuccess(info2 -> {
+                                                    // do something...
+                                                    System.out.println("----set slave2");
 
-//        初始化哨兵，指定受监控的主节点
-        Redis sentiClient1 = Redis.createClient(
-                Main.vertx,
-            new RedisOptions()
-                    .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://127.0.0.1:26379")
-//                        .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
-            );
-        sentiClient1
-            .connect()
-            .onSuccess(conn -> {
-                conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
-                        .arg("mymaster")
-                        .arg("127.0.0.1")
-//                            .arg(serverIpsStatic[0])
-                        .arg("6379")
-                        .arg("2"))
-                        .onSuccess(info -> {
-                            // do something...
-                            System.out.println("----set sentinel1");
-                            sentiClient1.close();
-                        });
-            });
+                                                    //初始化哨兵，指定受监控的主节点
+                                                    //senti1---------------------------------
+                                                    Redis sentiClient1 = Redis.createClient(
+                                                            Main.vertx,
+                                                            new RedisOptions()
+                                                                    .setType(RedisClientType.STANDALONE)
+                                                                    .addConnectionString("redis://39.107.249.226:26379")
+                                                                    //.addConnectionString("redis://127.0.0.1:26379")
+                                                                    //.addConnectionString("redis://"+serverIpsStatic[0]+":26379")
+                                                    );
+                                                    sentiClient1
+                                                            .connect()
+                                                            .onSuccess(conn3 -> {
+                                                                conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
+                                                                        .arg("mymaster")
+                                                                        .arg("123.56.115.153")
+                                                                        //.arg("127.0.0.1")
+                                                                        //.arg(serverIpsStatic[0])
+                                                                        .arg("6379")
+                                                                        .arg("2"))
+                                                                        .onFailure(ss->{
+                                                                            ss.printStackTrace();
+                                                                        })
+                                                                        .onSuccess(info3 -> {
+                                                                            // do something...
+                                                                            System.out.println("----set sentinel1");
 
-        System.out.println("-----test asyn4");
-        Redis sentiClient2 = Redis.createClient(
-                Main.vertx,
-            new RedisOptions()
-                    .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://127.0.0.1:26380")
-//                        .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
-            );
-        sentiClient2
-            .connect()
-            .onSuccess(conn -> {
-                conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
-                        .arg("mymaster")
-                        .arg("127.0.0.1")
-//                            .arg(serverIpsStatic[0])
-                        .arg("6379")
-                        .arg("2"))
-                        .onSuccess(info -> {
-                            // do something...
-                            System.out.println("----set sentinel2");
-                            sentiClient2.close();
-                        });
-            });
+                                                                            //senti2-----------------------
+                                                                            System.out.println("-----test asyn4");
+                                                                            Redis sentiClient2 = Redis.createClient(
+                                                                                    Main.vertx,
+                                                                                    new RedisOptions()
+                                                                                            .setType(RedisClientType.STANDALONE)
+                                                                                            .addConnectionString("redis://39.105.154.114:26379")
+                                                                            //.addConnectionString("redis://127.0.0.1:26380")
+                                                                            //.addConnectionString("redis://"+serverIpsStatic[1]+":26379")
+                                                                            );
+                                                                            sentiClient2
+                                                                                    .connect()
+                                                                                    .onSuccess(conn4 -> {
+                                                                                        conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
+                                                                                                .arg("mymaster")
+                                                                                                .arg("123.56.115.153")
+                                                                                                //.arg("127.0.0.1")
+                                                                                                //.arg(serverIpsStatic[0])
+                                                                                                .arg("6379")
+                                                                                                .arg("2"))
+                                                                                                .onSuccess(info4 -> {
+                                                                                                    // do something...
+                                                                                                    System.out.println("----set sentinel2");
 
-        Redis sentiClient3 = Redis.createClient(
-                Main.vertx,
-            new RedisOptions()
-                    .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://127.0.0.1:26381")
-//                        .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
-            );
-        sentiClient3
-            .connect()
-            .onSuccess(conn -> {
-                conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
-                        .arg("mymaster")
-                        .arg("127.0.0.1")
-//                            .arg(serverIpsStatic[0])
-                        .arg("6379")
-                        .arg("2"))
-                        .onSuccess(info -> {
-                            // do something...
-                            System.out.println("----set sentinel3");
-                            sentiClient3.close();
+
+                                                                                                    //senti3------------------
+                                                                                                    Redis sentiClient3 = Redis.createClient(
+                                                                                                            Main.vertx,
+                                                                                                            new RedisOptions()
+                                                                                                                    .setType(RedisClientType.STANDALONE)
+                                                                                                                    .addConnectionString("redis://123.56.115.153:26379")
+                                                                                                                    //.addConnectionString("redis://127.0.0.1:26381")
+                                                                                                                    //.addConnectionString("redis://"+serverIpsStatic[2]+":26379")
+                                                                                                    );
+                                                                                                    sentiClient3
+                                                                                                            .connect()
+                                                                                                            .onSuccess(conn5 -> {
+                                                                                                                conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
+                                                                                                                        .arg("mymaster")
+                                                                                                                        .arg("123.56.115.153")
+                                                                                                                        //.arg("127.0.0.1")
+                                                                                                                        //.arg(serverIpsStatic[0])
+                                                                                                                        .arg("6379")
+                                                                                                                        .arg("2"))
+                                                                                                                        .onSuccess(info5 -> {
+                                                                                                                            // do something...
+                                                                                                                            System.out.println("----set sentinel3");
+                                                                                                                            sentiClient3.close();
+                                                                                                                            sentiClient2.close();
+                                                                                                                            sentiClient1.close();
+                                                                                                                            slaveClient2.close();
+                                                                                                                            slaveClient1.close();
+                                                                                                                        });
+                                                                                                            });
+                                                                                                });
+                                                                                    });
+                                                                        });
+                                                            });
+
+                                                });
+
+                                    });
                         });
             });
     }
@@ -160,7 +180,8 @@ public class RedisClientUtil {
                 Main.vertx,
                 new RedisOptions()
                         .setType(RedisClientType.STANDALONE)
-                        .addConnectionString("redis://127.0.0.1:6381")
+                        .addConnectionString("redis://123.56.115.153:6379")
+//                        .addConnectionString("redis://127.0.0.1:6381")
 //                        .addConnectionString("redis://"+serverIps[0]+"6379")
         );
         RedisAPI lockAPI = RedisAPI.api(lockClient);
@@ -181,7 +202,8 @@ public class RedisClientUtil {
             lockAPI.exists(isInitedArgs).onSuccess(exsist->{
                 if(exsist.toString().equals("0")){
                     // TODO: 2021/8/31 注释了初始化redis server
-                    //init();
+                    //初始化redis server核心逻辑
+                    init();
                     //标记已完成哨兵架构初始化
                     isInitedArgs.add("1");
                     lockAPI.set(isInitedArgs).onSuccess(value3 ->{
@@ -250,9 +272,12 @@ public class RedisClientUtil {
                 Main.vertx,
                 new RedisOptions()
                         .setType(RedisClientType.SENTINEL)
-                        .addConnectionString("redis://127.0.0.1:26379")
-                        .addConnectionString("redis://127.0.0.1:26380")
-                        .addConnectionString("redis://127.0.0.1:26381")
+                        .addConnectionString("redis://39.107.249.226:26379")
+                        .addConnectionString("redis://39.105.154.114:26379")
+                        .addConnectionString("redis://123.56.115.153:26379")
+//                        .addConnectionString("redis://127.0.0.1:26379")
+//                        .addConnectionString("redis://127.0.0.1:26380")
+//                        .addConnectionString("redis://127.0.0.1:26381")
 //                            .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
 //                            .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
 //                            .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
