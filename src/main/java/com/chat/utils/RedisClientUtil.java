@@ -231,7 +231,7 @@ public class RedisClientUtil {
      * 初始化高可用客户端
      * @return
      */
-    public static void initRedisClient(){
+    public static Redis initRedisClient(){
         //重新加载serverIpsStatic
         if (serverIpsStatic == null) {
             File file = new File("redis.properties");
@@ -263,8 +263,21 @@ public class RedisClientUtil {
                         .setMaxPoolSize(8)
                         .setMaxWaitingHandlers(8));
 
-        redisAPI = RedisAPI.api(redisClient);
-        BizCheckUtils.checkNull(redisAPI,"redisAPI初始化失败");
+        return redisClient;
+    }
+
+    public static RedisAPI getRedisAPI(){
+        if(redisAPI != null){
+            return redisAPI;
+        }else{
+            synchronized (RedisClientUtil.class){
+                if(redisAPI==null){
+                    redisClient = initRedisClient();
+                    redisAPI = RedisAPI.api(redisClient);
+                }
+            }
+            return redisAPI;
+        }
     }
 
     public static String[] convertIp(String[] serverIps){
@@ -284,10 +297,5 @@ public class RedisClientUtil {
             }
         }
         return ipsNew;
-    }
-
-    public static RedisAPI getRedisAPI() {
-        BizCheckUtils.checkNull(redisAPI,"redisApi未初始化完成");
-        return redisAPI;
     }
 }

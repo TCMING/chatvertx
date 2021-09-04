@@ -28,6 +28,7 @@ public class UserRepository {
                 userDtoRef.set(userDto);
             }
         });
+        System.out.println("-------test asyn");
         return userDtoRef.get();
     }
 

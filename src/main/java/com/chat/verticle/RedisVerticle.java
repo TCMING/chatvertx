@@ -33,7 +33,6 @@ public class RedisVerticle extends AbstractVerticle {
             if(RedisClientUtil.initRedisServer(json)){
                 msg.reply(true);
             }
-            RedisClientUtil.initRedisClient();
         } );
     }
 
