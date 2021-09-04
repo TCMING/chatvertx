@@ -46,6 +46,8 @@ public class RedisClientUtil {
                         .onSuccess(info -> {
                             // do something...
                             System.out.println("----set slave1");
+
+                            //slave2-----------------------------------------
                             Redis slaveClient2 = Redis.createClient(
                                     Main.vertx,
                                     new RedisOptions()
@@ -54,12 +56,10 @@ public class RedisClientUtil {
                                             //.addConnectionString("redis://127.0.0.1:6381")
                                             //.addConnectionString("redis://"+serverIpsStatic[2]+"6379")
                             );
-
-                            //slave2-----------------------------------------
                             slaveClient2
                                     .connect()
                                     .onSuccess(conn2 -> {
-                                        conn.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
+                                        conn2.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
                                         //conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
                                         //conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
                                                 .onSuccess(info2 -> {
@@ -79,22 +79,18 @@ public class RedisClientUtil {
                                                     sentiClient1
                                                             .connect()
                                                             .onSuccess(conn3 -> {
-                                                                conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
+                                                                conn3.send(Request.cmd(Command.SENTINEL).arg("monitor")
                                                                         .arg("mymaster")
                                                                         .arg("123.56.115.153")
                                                                         //.arg("127.0.0.1")
                                                                         //.arg(serverIpsStatic[0])
                                                                         .arg("6379")
                                                                         .arg("2"))
-                                                                        .onFailure(ss->{
-                                                                            ss.printStackTrace();
-                                                                        })
                                                                         .onSuccess(info3 -> {
                                                                             // do something...
                                                                             System.out.println("----set sentinel1");
 
                                                                             //senti2-----------------------
-                                                                            System.out.println("-----test asyn4");
                                                                             Redis sentiClient2 = Redis.createClient(
                                                                                     Main.vertx,
                                                                                     new RedisOptions()
@@ -106,7 +102,7 @@ public class RedisClientUtil {
                                                                             sentiClient2
                                                                                     .connect()
                                                                                     .onSuccess(conn4 -> {
-                                                                                        conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
+                                                                                        conn4.send(Request.cmd(Command.SENTINEL).arg("monitor")
                                                                                                 .arg("mymaster")
                                                                                                 .arg("123.56.115.153")
                                                                                                 //.arg("127.0.0.1")
@@ -130,7 +126,7 @@ public class RedisClientUtil {
                                                                                                     sentiClient3
                                                                                                             .connect()
                                                                                                             .onSuccess(conn5 -> {
-                                                                                                                conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
+                                                                                                                conn5.send(Request.cmd(Command.SENTINEL).arg("monitor")
                                                                                                                         .arg("mymaster")
                                                                                                                         .arg("123.56.115.153")
                                                                                                                         //.arg("127.0.0.1")
@@ -140,6 +136,11 @@ public class RedisClientUtil {
                                                                                                                         .onSuccess(info5 -> {
                                                                                                                             // do something...
                                                                                                                             System.out.println("----set sentinel3");
+                                                                                                                            try {
+                                                                                                                                Thread.sleep(5000);
+                                                                                                                            } catch (InterruptedException e) {
+                                                                                                                                logger.error("--",e);
+                                                                                                                            }
                                                                                                                             sentiClient3.close();
                                                                                                                             sentiClient2.close();
                                                                                                                             sentiClient1.close();
