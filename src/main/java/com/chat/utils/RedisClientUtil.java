@@ -39,10 +39,17 @@ public class RedisClientUtil {
             );
         slaveClient1
             .connect()
+                .onFailure(f2->{
+                    logger.error("",f2.getCause().getStackTrace());
+                })
             .onSuccess(conn -> {
+                logger.info("----in 1");
                 conn.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
                 //conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
                 //conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
+                        .onFailure(fail->{
+                            logger.error("",fail.getCause());
+                        })
                         .onSuccess(info -> {
                             // do something...
                             System.out.println("----set slave1");
@@ -137,7 +144,7 @@ public class RedisClientUtil {
                                                                                                                             // do something...
                                                                                                                             System.out.println("----set sentinel3");
                                                                                                                             try {
-                                                                                                                                Thread.sleep(5000);
+                                                                                                                                Thread.sleep(10000);
                                                                                                                             } catch (InterruptedException e) {
                                                                                                                                 logger.error("--",e);
                                                                                                                             }
