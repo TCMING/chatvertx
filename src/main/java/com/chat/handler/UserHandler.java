@@ -17,7 +17,11 @@ import static com.chat.verticle.ChatServer.out;
 
 public class UserHandler {
 
+    public static final String REDIS_USER_CREATE = "redis.user.create";
 
+    public static final String REDIS_USER_ID_GET = "redis.user.id.get";
+
+    public static final String REDIS_USER_SINGLE_QUERY = "redis.user.single.query";
 
     public void addUser(RoutingContext context) {
         try {
@@ -32,19 +36,29 @@ public class UserHandler {
             userDto.setPhone(userRequest.getPhone());
 
             EventBus bus = Main.vertx.eventBus();
-            bus.<UserDto>request(RedisVerticle.REDIS_USER_SINGLE_QUERY, userDto.getUsername(), queryReply ->{
+            bus.<UserDto>request(REDIS_USER_SINGLE_QUERY, userDto.getUsername(), queryReply ->{
                 if(queryReply.succeeded() ){
                     UserDto queryUserInfo = queryReply.result().body();
-                    if(queryUserInfo != null){
-                        out(context, Json.encodePrettily(true));
+                    if(queryUserInfo == null){
+                        bus.<Integer>request(REDIS_USER_ID_GET,1,idGetReply->{
+                            if(idGetReply.succeeded() && idGetReply.result() != null && idGetReply.result().body() > 0){
+                                userDto.setId(idGetReply.result().body());
+                                bus.<Boolean>request(REDIS_USER_CREATE,userDto, saveReply ->{
+                                    if(saveReply.succeeded() && saveReply.result().body()){
+                                        out(context, Json.encodePrettily(true));
+                                    }else {
+                                        context.fail(400);
+                                    }
+                                });
+                            }else{
+                                context.fail(400);
+                            }
+                        });
                     }
-                    bus.<Boolean>request(RedisVerticle.REDIS_USER_CREATE,userDto, saveReply ->{
-                        if(saveReply.succeeded() && saveReply.result().body()){
-                            out(context, Json.encodePrettily(true));
-                        }else {
-                            context.fail(400);
-                        }
-                    });
+                    out(context, Json.encodePrettily(true));
+
+                }else{
+                    context.fail(400);
                 }
             });
         }catch (Exception e){
@@ -57,7 +71,6 @@ public class UserHandler {
             String username = routingContext.request().getParam("username");
             String password = routingContext.request().getParam("password");
             System.out.println("userLogin " + username +" "+ password);
-
 
 //            BizCheckUtils.check(userService.userPasswordCheck(username,password),"Invalid username or password.");
             String jwtToken = JwtUtils.createToken(username);

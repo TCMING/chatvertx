@@ -11,6 +11,7 @@ import com.chat.utils.*;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -211,11 +212,15 @@ public class ChatServer extends AbstractVerticle {
     }
 
     public static void out(RoutingContext ctx, String msg) {
-        ctx.response().putHeader("Content-Type", "application/json; charset=utf-8").end(msg);
+        try {
+            ctx.response().putHeader("Content-Type", "application/json; charset=utf-8").end(msg);
+        }catch (Exception ignore){
+        }
     }
 
-    public static void errorOut(RoutingContext ctx) {
-        ctx.fail(400);
+    public static void sendError(int statusCode, HttpServerResponse response ){
+        response.setStatusCode(404).end();
     }
+
 }
 

@@ -16,13 +16,13 @@ public class BeanFactory {
 
     public static void init(){
 
-        UserRedisDao userRedisDao = new UserRedisDao();
+//        UserRedisDao userRedisDao = new UserRedisDao();
 
         MessageRepository messageRepository = new MessageRepository();
         RoomRepository roomRepository = new RoomRepository();
 
 
-        instances.put(UserRedisDao.class,userRedisDao);
+        instances.put(UserRedisDao.class,null);
         instances.put(MessageRepository.class,messageRepository);
         instances.put(RoomRepository.class,roomRepository);
     }

@@ -2,14 +2,22 @@ package com.chat.verticle;
 
 import com.chat.dao.UserRedisDao;
 import com.chat.utils.RedisClientUtil;
+import com.chat.utils.SingleRedisClient;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.redis.client.RedisAPI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RedisVerticle extends AbstractVerticle {
 
-    public static final String UPDATE_CLUSTER_ADD = "update_cluster_add";
+    public static final Logger logger = LoggerFactory.getLogger(RedisVerticle.class);
 
-    private String userListKey = "userList";
+    private SingleRedisClient redisClient = new SingleRedisClient();
+
+    private UserRedisDao userRedisDao;
+
+    public static final String UPDATE_CLUSTER_ADD = "update_cluster_add";
 
     public static final String REDIS_USER_SINGLE_QUERY = "redis.user.single.query";
 
@@ -23,7 +31,7 @@ public class RedisVerticle extends AbstractVerticle {
     public void start() throws Exception {
         System.out.println("---------"+Thread.currentThread().getName());
         updateCluster();
-        createCURDService();
+        redisClient.start(this);
     }
 
     private void updateCluster(){
@@ -36,14 +44,11 @@ public class RedisVerticle extends AbstractVerticle {
         } );
     }
 
-    private void createCURDService(){
-        //DAO层服务
-        UserRedisDao userRedisDao = new UserRedisDao();
-        userRedisDao.baseOperate();
-
-//        RoomRedisDao roomRedisDao = new RoomRedisDao();
-//        roomRedisDao.baseOperate();
-
+    public UserRedisDao getUserRedisDao() {
+        return userRedisDao;
     }
 
+    public void setUserRedisDao(RedisAPI redisAPI) {
+        this.userRedisDao = new UserRedisDao(redisAPI);
+    }
 }
