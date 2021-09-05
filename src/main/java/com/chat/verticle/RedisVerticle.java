@@ -30,10 +30,12 @@ public class RedisVerticle extends AbstractVerticle {
         MessageConsumer<String> consumner =  vertx.eventBus().consumer(UPDATE_CLUSTER_ADD);
         consumner.handler( msg -> {
             String json = msg.body();
-            if(RedisClientUtil.initRedisServer(json)){
-                msg.reply(true);
-            }
+//            if(RedisClientUtil.initRedisServer(json)){
+//                msg.reply(true);
+//            }
+            RedisClientUtil.init();
             RedisClientUtil.initRedisClient();
+            msg.reply(true);
         } );
     }
 

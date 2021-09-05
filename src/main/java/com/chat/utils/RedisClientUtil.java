@@ -33,13 +33,13 @@ public class RedisClientUtil {
                 Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://127.0.0.1:6380")
+                    .addConnectionString("redis://10.63.5.164:6380")
 //                        .addConnectionString("redis://"+serverIpsStatic[1]+"6379")
             );
         slaveClient1
             .connect()
             .onSuccess(conn -> {
-                conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
+                conn.send(Request.cmd(Command.SLAVEOF).arg("10.63.5.164").arg("6379"))
     //                    conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
                         .onSuccess(info -> {
                             // do something...
@@ -52,13 +52,13 @@ public class RedisClientUtil {
                 Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://127.0.0.1:6381")
+                    .addConnectionString("redis://10.63.5.164:6381")
 //                        .addConnectionString("redis://"+serverIpsStatic[2]+"6379")
             );
         slaveClient2
             .connect()
             .onSuccess(conn -> {
-                conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
+                conn.send(Request.cmd(Command.SLAVEOF).arg("10.63.5.164").arg("6379"))
 //                    conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
                         .onSuccess(info -> {
                             // do something...
@@ -72,7 +72,7 @@ public class RedisClientUtil {
                 Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://127.0.0.1:26379")
+                    .addConnectionString("redis://10.63.5.164:26379")
 //                        .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
             );
         sentiClient1
@@ -80,7 +80,7 @@ public class RedisClientUtil {
             .onSuccess(conn -> {
                 conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
                         .arg("mymaster")
-                        .arg("127.0.0.1")
+                        .arg("10.63.5.164")
 //                            .arg(serverIpsStatic[0])
                         .arg("6379")
                         .arg("2"))
@@ -96,7 +96,7 @@ public class RedisClientUtil {
                 Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://127.0.0.1:26380")
+                    .addConnectionString("redis://10.63.5.164:26380")
 //                        .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
             );
         sentiClient2
@@ -104,7 +104,7 @@ public class RedisClientUtil {
             .onSuccess(conn -> {
                 conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
                         .arg("mymaster")
-                        .arg("127.0.0.1")
+                        .arg("10.63.5.164")
 //                            .arg(serverIpsStatic[0])
                         .arg("6379")
                         .arg("2"))
@@ -119,7 +119,7 @@ public class RedisClientUtil {
                 Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://127.0.0.1:26381")
+                    .addConnectionString("redis://10.63.5.164:26381")
 //                        .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
             );
         sentiClient3
@@ -127,7 +127,7 @@ public class RedisClientUtil {
             .onSuccess(conn -> {
                 conn.send(Request.cmd(Command.SENTINEL).arg("monitor")
                         .arg("mymaster")
-                        .arg("127.0.0.1")
+                        .arg("10.63.5.164")
 //                            .arg(serverIpsStatic[0])
                         .arg("6379")
                         .arg("2"))
@@ -160,7 +160,7 @@ public class RedisClientUtil {
                 Main.vertx,
                 new RedisOptions()
                         .setType(RedisClientType.STANDALONE)
-                        .addConnectionString("redis://127.0.0.1:6381")
+                        .addConnectionString("redis://10.63.5.164:6381")
 //                        .addConnectionString("redis://"+serverIps[0]+"6379")
         );
         RedisAPI lockAPI = RedisAPI.api(lockClient);
@@ -233,26 +233,26 @@ public class RedisClientUtil {
      */
     public static void initRedisClient(){
         //重新加载serverIpsStatic
-        if (serverIpsStatic == null) {
-            File file = new File("redis.properties");
-            try {
-                prop.load(new FileInputStream(file));
-                String json = prop.getProperty("ips");
-                String[] ips = json.split(",");
-                serverIpsStatic = convertIp(ips);
-            } catch (IOException e) {
-                logger.error("--error", e);
-            }
-        }
-        BizCheckUtils.checkNull(serverIpsStatic,"serverIpsStatic初始化失败");
+//        if (serverIpsStatic == null) {
+//            File file = new File("redis.properties");
+//            try {
+//                prop.load(new FileInputStream(file));
+//                String json = prop.getProperty("ips");
+//                String[] ips = json.split(",");
+//                serverIpsStatic = convertIp(ips);
+//            } catch (IOException e) {
+//                logger.error("--error", e);
+//            }
+//        }
+//        BizCheckUtils.checkNull(serverIpsStatic,"serverIpsStatic初始化失败");
         //初始化RedisClient
         redisClient = Redis.createClient(
                 Main.vertx,
                 new RedisOptions()
                         .setType(RedisClientType.SENTINEL)
-                        .addConnectionString("redis://127.0.0.1:26379")
-                        .addConnectionString("redis://127.0.0.1:26380")
-                        .addConnectionString("redis://127.0.0.1:26381")
+                        .addConnectionString("redis://10.63.5.164:26379")
+                        .addConnectionString("redis://10.63.5.164:26380")
+                        .addConnectionString("redis://10.63.5.164:26381")
 //                            .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
 //                            .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
 //                            .addConnectionString("redis://"+serverIpsStatic[2]+":26379")

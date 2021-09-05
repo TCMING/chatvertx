@@ -5,20 +5,13 @@ import com.chat.model.UserDto;
 import com.chat.model.MessageRetrive;
 import com.chat.model.QueryControlData;
 import com.chat.repository.MessageRepository;
-import com.chat.repository.UserRepository;
 
 import java.util.List;
 
 public class MessageService {
 
-	private final MessageRepository messageRepository;
+	private MessageRepository messageRepository;
 
-	private final UserRepository userRepository;
-
-	public MessageService(MessageRepository messageRepository, UserRepository userRepository) {
-		this.messageRepository = messageRepository;
-		this.userRepository = userRepository;
-	}
 
 	public boolean sendMessage(String username, String id, String text){
 		//TODO 幂等性是不是返回true
@@ -34,7 +27,7 @@ public class MessageService {
 
 		long curTime = System.currentTimeMillis();
 		// TODO: 2021/7/8 查用户的房间
-		UserDto userDto = userRepository.queryUser(username);
+		UserDto userDto = null;
 		if(userDto==null || userDto.getRoomId()==0){
 			return false;
 		}

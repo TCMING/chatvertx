@@ -37,8 +37,8 @@ public class UserRedisDao {
                     String value = res.result().toString();
                     msg.reply(GsonUtils.jsonToBean(value,UserDto.class));
                 }else{
-                    logger.info("保存用户信息失败 ");
-                    msg.reply(false);
+                    logger.info("查询用户信息失败 ");
+                    msg.reply(null);
                 }
             });
         });

@@ -1,19 +1,17 @@
 package com.chat.verticle;
 
+import com.chat.handler.UserHandler;
 import com.chat.model.*;
 import com.chat.repository.MessageRepository;
 import com.chat.repository.RoomRepository;
-import com.chat.repository.UserRepository;
 import com.chat.service.MessageService;
 import com.chat.service.RoomService;
 import com.chat.service.UserService;
 import com.chat.utils.*;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -29,12 +27,12 @@ public class ChatServer extends AbstractVerticle {
     private MessageService messageService;
     private MessageRepository messageRepository;
     private RoomRepository roomRepository;
-    private UserRepository userRepository;
+    private UserHandler userHandler;
 
     public ChatServer() {
+        this.userHandler = new UserHandler();
         this.messageRepository = BeanFactory.getInstance(MessageRepository.class);
         this.roomRepository = BeanFactory.getInstance(RoomRepository.class);
-        this.userRepository = BeanFactory.getInstance(UserRepository.class);
         this.userService = BeanFactory.getInstance(UserService.class);
         this.roomService = BeanFactory.getInstance(RoomService.class);
         this.messageService = BeanFactory.getInstance(MessageService.class);
@@ -53,9 +51,9 @@ public class ChatServer extends AbstractVerticle {
         router.post("/updateCluster").handler(this::updateCluster);
 
         // user
-        router.post("/user").handler(this::addUser);
-        router.get("/userLogin").handler(this::userLogin);
-        router.get("/user/:username").handler(this::getUserInfo);
+        router.post("/user").handler(userHandler::addUser);
+        router.get("/userLogin").handler(userHandler::userLogin);
+        router.get("/user/:username").handler(userHandler::getUserInfo);
 
         //room
         router.post("/room").handler(this::room);
@@ -167,7 +165,8 @@ public class ChatServer extends AbstractVerticle {
 
             BizCheckUtils.check(queryControlData.getPageIndex() < 0 && queryControlData.getPageSize()>=0,"无效输入");
 
-            UserDto userDto = userRepository.queryUser(username);
+//            UserDto userDto = userRepository.queryUser(username);
+            UserDto userDto = null;
             BizCheckUtils.check(userDto != null && userDto.getRoomId() > 0,"Invalid input");
 
             List<MessageRetrive> messageRetrives = messageService.pullMessage(userDto.getRoomId() , queryControlData);
@@ -177,47 +176,6 @@ public class ChatServer extends AbstractVerticle {
         }
         // 模拟service调用
 
-    }
-
-    private void getUserInfo(RoutingContext routingContext) {
-        String username = routingContext.request().getParam("username");
-
-        try {
-            BizCheckUtils.checkNull(username, "Invalid username supplied");
-            UserDto userDto = userService.queryUserByName(username);
-            BizCheckUtils.checkNull(userDto,"Invalid username supplied");
-            UserResponse userResponse = new UserResponse(userDto.getFirstName(),userDto.getLastName(),
-                    userDto.getEmail(),userDto.getPhone());
-            out(routingContext, Json.encodePrettily(userResponse));
-        }catch (Exception e){
-            routingContext.fail(400,e);
-        }
-
-    }
-
-    private void userLogin(RoutingContext routingContext) {
-        try {
-            String username = routingContext.request().getParam("username");
-            String password = routingContext.request().getParam("password");
-            System.out.println("userLogin " + username +" "+ password);
-            BizCheckUtils.check(userService.userPasswordCheck(username,password),"Invalid username or password.");
-            String jwtToken = JwtUtils.createToken(username);
-            out(routingContext, Json.encodePrettily(jwtToken));
-        }catch (Exception e){
-            routingContext.fail(400,e);
-        }
-    }
-
-    private void addUser(RoutingContext routingContext) {
-        try {
-            String json = routingContext.getBody().toString();
-            UserRequest userRequest = GsonUtils.jsonToBean(json, UserRequest.class);
-            BizCheckUtils.check(userService.registryUser(userRequest),"保存用户异常");
-            // 模拟service调用
-            out(routingContext, Json.encodePrettily(true));
-        }catch (Exception e){
-            routingContext.fail(400,e);
-        }
     }
 
     private void updateCluster(RoutingContext routingContext){
@@ -236,9 +194,9 @@ public class ChatServer extends AbstractVerticle {
                 vertx,
                 new RedisOptions()
                         .setType(RedisClientType.SENTINEL)
-                        .addConnectionString("redis://127.0.0.1:26379")
-                        .addConnectionString("redis://127.0.0.1:26380")
-                        .addConnectionString("redis://127.0.0.1:26381")
+                        .addConnectionString("redis://10.63.5.164:26379")
+                        .addConnectionString("redis://10.63.5.164:26380")
+                        .addConnectionString("redis://10.63.5.164:26381")
                         .setMasterName("mymaster")
                         .setRole(RedisRole.MASTER)
                         .setMaxPoolSize(8)
@@ -252,8 +210,12 @@ public class ChatServer extends AbstractVerticle {
         });
     }
 
-    private void out(RoutingContext ctx, String msg) {
+    public static void out(RoutingContext ctx, String msg) {
         ctx.response().putHeader("Content-Type", "application/json; charset=utf-8").end(msg);
+    }
+
+    public static void errorOut(RoutingContext ctx) {
+        ctx.fail(400);
     }
 }
 

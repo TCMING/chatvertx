@@ -6,18 +6,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.chat.model.RoomDto;
 import com.chat.model.UserDto;
 import com.chat.repository.RoomRepository;
-import com.chat.repository.UserRepository;
 import org.apache.commons.lang3.StringUtils;
 
 public class RoomService {
 
 	private RoomRepository roomRepository;
 
-	private UserRepository userRepository;
 
-	public RoomService(RoomRepository roomRepository, UserRepository userRepository) {
+	public RoomService(RoomRepository roomRepository) {
 		this.roomRepository = roomRepository;
-		this.userRepository = userRepository;
 	}
 
 	//暂时不用内存淘汰，维护全量的room-user信息
@@ -39,7 +36,8 @@ public class RoomService {
 				return false;
 			}
 			//2.用户状态更新
-			UserDto user = userRepository.queryUser(username);
+//			UserDto user = userRepository.queryUser(username);
+			UserDto user = null;
 			int originRoomId = user.getRoomId();
 			if(roomId == originRoomId){
 				return true;
@@ -72,8 +70,10 @@ public class RoomService {
 		try {
 			// TODO: 2021/7/4 题意不要求持久化在线人数   内存或者redis或者mysql  数据一致性  性能问题
 			//维护userCache
-			UserDto user = userRepository.queryUser(username);
+//			UserDto user = userRepository.queryUser(username);
+			UserDto user = null;
 			int originRoomId = user.getRoomId();
+
 			if(originRoomId<=0){
 				return true;
 			}
