@@ -1,5 +1,6 @@
-package com.chat.model;
+package com.chat.codec;
 
+import com.chat.model.UserDto;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.MessageCodec;
 
