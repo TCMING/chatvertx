@@ -54,7 +54,7 @@ public class ChatServer extends AbstractVerticle {
         // user
         router.post("/user").handler(userHandler::addUser);
         router.get("/userLogin").handler(userHandler::userLogin);
-        router.get("/user/:username").handler(userHandler::getUserInfo);
+        router.get("/user/:username").handler(userHandler::queryUserInfo);
 
         //room
         router.post("/room").handler(this::room);
@@ -211,15 +211,15 @@ public class ChatServer extends AbstractVerticle {
         });
     }
 
-    public static void out(RoutingContext ctx, String msg) {
+    public static void out(RoutingContext ctx, String value) {
         try {
-            ctx.response().putHeader("Content-Type", "application/json; charset=utf-8").end(msg);
+            ctx.response().putHeader("Content-Type", "application/json; charset=utf-8").end(value);
         }catch (Exception ignore){
         }
     }
 
-    public static void sendError(int statusCode, HttpServerResponse response ){
-        response.setStatusCode(404).end();
+    public static void sendError(RoutingContext ctx, String msg){
+        ctx.response().setStatusCode(400).end(msg);
     }
 
 }

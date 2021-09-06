@@ -7,21 +7,67 @@ import com.chat.utils.BizCheckUtils;
 import com.chat.utils.GsonUtils;
 import com.chat.utils.JwtUtils;
 import com.chat.verticle.RedisVerticle;
+import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 import static com.chat.verticle.ChatServer.out;
+import static com.chat.verticle.ChatServer.sendError;
 
 
 public class UserHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(RedisVerticle.class);
 
     public static final String REDIS_USER_CREATE = "redis.user.create";
 
     public static final String REDIS_USER_ID_GET = "redis.user.id.get";
 
     public static final String REDIS_USER_SINGLE_QUERY = "redis.user.single.query";
+
+    public static final String REDIS_USER_SINGLE_QUERY_STRING = "redis.user.single.query.string";
+
+    public void userLogin(RoutingContext context) {
+        try {
+            String username = context.request().getParam("username");
+            String password = context.request().getParam("password");
+            logger.info("userLogin " + username +" "+ password);
+
+            EventBus bus = Main.vertx.eventBus();
+            bus.<UserDto>request(REDIS_USER_SINGLE_QUERY, username, queryReply ->{
+                if(queryReply.succeeded() && queryReply.result() != null){
+                    UserDto userInfo = queryReply.result().body();
+                    if(userInfo != null && StringUtils.equals(username,userInfo.getUsername())
+                            && StringUtils.equals(password,userInfo.getPassword()) ){
+                        String jwtToken = JwtUtils.createToken(username);
+                        out(context,Json.encodePrettily(jwtToken));
+                        return ;
+                    }
+                }
+                sendError(context,"Invalid username supplied");
+            });
+        }catch (Exception e){
+            context.fail(400,e);
+        }
+    }
+
+    public void queryUserInfo(RoutingContext context) {
+        String username = context.request().getParam("username");
+        EventBus bus = Main.vertx.eventBus();
+        bus.<String>request(REDIS_USER_SINGLE_QUERY_STRING, username, queryReply ->{
+            if(queryReply.succeeded() && queryReply.result() != null){
+                String userInfo = queryReply.result().body();
+                out(context,userInfo);
+            }else{
+                sendError(context,"Invalid username supplied");
+            }
+        });
+    }
 
     public void addUser(RoutingContext context) {
         try {
@@ -63,35 +109,6 @@ public class UserHandler {
             });
         }catch (Exception e){
             context.fail(400,e);
-        }
-    }
-
-    public void userLogin(RoutingContext routingContext) {
-        try {
-            String username = routingContext.request().getParam("username");
-            String password = routingContext.request().getParam("password");
-            System.out.println("userLogin " + username +" "+ password);
-
-//            BizCheckUtils.check(userService.userPasswordCheck(username,password),"Invalid username or password.");
-            String jwtToken = JwtUtils.createToken(username);
-            out(routingContext, Json.encodePrettily(jwtToken));
-        }catch (Exception e){
-            routingContext.fail(400,e);
-        }
-    }
-
-    public void getUserInfo(RoutingContext routingContext) {
-        String username = routingContext.request().getParam("username");
-
-        try {
-            BizCheckUtils.checkNull(username, "Invalid username supplied");
-//            UserDto userDto = userService.queryUserByName(username);
-//            BizCheckUtils.checkNull(userDto,"Invalid username supplied");
-//            UserResponse userResponse = new UserResponse(userDto.getFirstName(),userDto.getLastName(),
-//                    userDto.getEmail(),userDto.getPhone());
-            out(routingContext, Json.encodePrettily(true));
-        }catch (Exception e){
-            routingContext.fail(400,e);
         }
     }
 

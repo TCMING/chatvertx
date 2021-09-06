@@ -76,6 +76,26 @@ public class UserRedisDao {
             });
         });
 
+        //查询单个用户
+        bus.<String>consumer(UserHandler.REDIS_USER_SINGLE_QUERY_STRING).handler(msg ->{
+            String username = msg.body();
+
+            redisAPI.hget(userMapKey, username, res -> {
+                try {
+                    if (res.succeeded() && res.result() != null && res.result().type() == ResponseType.BULK) {
+                        String value = res.result().toString();
+                        logger.info("查询用户信息完成,value={} ", value);
+                        msg.reply(value);
+                    } else {
+                        logger.info("查询用户信息失败 ");
+                        msg.reply(null);
+                    }
+                } catch (Exception e) {
+                    msg.fail(400, e.getMessage());
+                }
+            });
+        });
+
         //保存用户
         bus.<UserDto>consumer(UserHandler.REDIS_USER_CREATE).handler(msg ->{
             UserDto userDto = msg.body();
