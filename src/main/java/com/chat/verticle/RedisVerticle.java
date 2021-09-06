@@ -26,7 +26,7 @@ public class RedisVerticle extends AbstractVerticle {
     public static final String UPDATE_CLUSTER_ADD = "update_cluster_add";
 
     @Override
-    public void start() throws Exception {
+    public void start(){
         System.out.println("---------"+Thread.currentThread().getName());
         updateCluster();
         redisClient.start(this);
@@ -40,10 +40,6 @@ public class RedisVerticle extends AbstractVerticle {
                 msg.reply(true);
             }
         } );
-    }
-
-    public UserRedisDao getUserRedisDao() {
-        return userRedisDao;
     }
 
     public void initRedisDao(RedisAPI redisAPI) {

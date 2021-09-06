@@ -25,7 +25,7 @@ public class ChatVerticle extends AbstractVerticle {
     }
 
     @Override
-    public void start() throws Exception {
+    public void start(){
 
         System.out.println("---------"+Thread.currentThread().getName());
 
