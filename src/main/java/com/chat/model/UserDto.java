@@ -7,8 +7,6 @@ import java.io.Serializable;
 @Data
 public class UserDto implements Serializable {
 
-	private Integer id;
-
 	private String username;
 
 	private int roomId;

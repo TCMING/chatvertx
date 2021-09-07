@@ -3,9 +3,9 @@ package com.chat.handler;
 import com.chat.Main;
 import com.chat.model.UserDto;
 import com.chat.model.UserRequest;
+import com.chat.model.UserResponse;
 import com.chat.utils.GsonUtils;
 import com.chat.utils.JwtUtils;
-import com.chat.verticle.RedisVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
@@ -22,7 +22,7 @@ public class UserHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(UserHandler.class);
 
-    public static final String REDIS_USER_ID_INIT = "redis.user.id.init";
+//    public static final String REDIS_USER_ID_INIT = "redis.user.id.init";
 
     public static final String REDIS_USER_CREATE = "redis.user.create";
 
@@ -34,8 +34,6 @@ public class UserHandler {
         try {
             String username = context.request().getParam("username");
             String password = context.request().getParam("password");
-            logger.info("userLogin " + username +" "+ password);
-
             EventBus bus = Main.vertx.eventBus();
             bus.<UserDto>request(REDIS_USER_QUERY, username, queryReply ->{
                 if(queryReply.succeeded() && queryReply.result() != null){
@@ -60,11 +58,14 @@ public class UserHandler {
         bus.<UserDto>request(REDIS_USER_QUERY, username, queryReply ->{
             if(queryReply.succeeded() && queryReply.result() != null){
                 UserDto userInfo = queryReply.result().body();
-                out(context,GsonUtils.toJsonString(userInfo));
+                UserResponse response = new UserResponse(userInfo.getFirstName(),userInfo.getLastName(),
+                        userInfo.getEmail(),userInfo.getPhone());
+                out(context,GsonUtils.toJsonString(response));
             }else{
                 sendError(context,"Invalid username supplied");
             }
         });
+        logger.info("test: 主线程 结束 current thread={}", Thread.currentThread().getName());
     }
 
     public void addUser(RoutingContext context) {
@@ -84,19 +85,12 @@ public class UserHandler {
                 if(queryReply.succeeded() ){
                     UserDto queryUserInfo = queryReply.result().body();
                     if(queryUserInfo == null){
-                        bus.<Integer>request(REDIS_USER_ID_INIT,1,idGetReply->{
-                            if(idGetReply.succeeded() && idGetReply.result() != null && idGetReply.result().body() > 0){
-                                userDto.setId(idGetReply.result().body());
-                                bus.<Boolean>request(REDIS_USER_CREATE,userDto, saveReply ->{
-                                    if(saveReply.succeeded() && saveReply.result().body()){
-                                        out(context, Json.encodePrettily(true));
-                                        return;
-                                    }
-                                    context.fail(400);
-                                });
-                            }else{
-                                context.fail(400);
+                        bus.<Boolean>request(REDIS_USER_CREATE, userDto, saveReply -> {
+                            if (saveReply.succeeded() && saveReply.result().body()) {
+                                out(context, Json.encodePrettily(true));
+                                return;
                             }
+                            context.fail(400);
                         });
                     }else{
                         out(context, Json.encodePrettily(true));

@@ -1,5 +1,6 @@
 package com.chat.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 /**
@@ -8,6 +9,7 @@ import lombok.Data;
  * @Version 1.0
  */
 @Data
+@AllArgsConstructor
 public class UserResponse {
 
     private String firstName;
@@ -18,10 +20,4 @@ public class UserResponse {
 
     private String phone;
 
-    public UserResponse(String firstName, String lastName, String email, String phone) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.email = email;
-        this.phone = phone;
-    }
 }

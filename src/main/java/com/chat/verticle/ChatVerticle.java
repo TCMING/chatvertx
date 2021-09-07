@@ -11,8 +11,12 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.redis.client.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ChatVerticle extends AbstractVerticle {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserHandler.class);
 
     private UserHandler userHandler;
     private RoomHandler roomHandler;
@@ -27,7 +31,7 @@ public class ChatVerticle extends AbstractVerticle {
     @Override
     public void start(){
 
-        System.out.println("---------"+Thread.currentThread().getName());
+        logger.info("初始化：currentThread={}",Thread.currentThread().getName());
 
         Router router = Router.router(vertx);
         router.route().handler(BodyHandler.create());
