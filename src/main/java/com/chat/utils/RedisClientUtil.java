@@ -26,16 +26,16 @@ public class RedisClientUtil {
 
     static Properties prop = new Properties();
 
-    public static void init(){
+    public static void init(RedisAPI lockAPI , String setValue){
 
 //        初始化主从关系
         Redis slaveClient1 = Redis.createClient(
                 Main.vertx,
             new RedisOptions()
                     .setType(RedisClientType.STANDALONE)
-                    .addConnectionString("redis://39.107.249.226:6379")
+                    //.addConnectionString("redis://39.107.249.226:6379")
                     //.addConnectionString("redis://127.0.0.1:6380")
-                    //.addConnectionString("redis://"+serverIpsStatic[1]+"6379")
+                    .addConnectionString("redis://"+serverIpsStatic[1]+":6379")
             );
         slaveClient1
             .connect()
@@ -44,9 +44,9 @@ public class RedisClientUtil {
                 })
             .onSuccess(conn -> {
                 logger.info("----in 1");
-                conn.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
+                //conn.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
                 //conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
-                //conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
+                conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
                         .onFailure(fail->{
                             logger.error("",fail.getCause());
                         })
@@ -59,16 +59,16 @@ public class RedisClientUtil {
                                     Main.vertx,
                                     new RedisOptions()
                                             .setType(RedisClientType.STANDALONE)
-                                            .addConnectionString("redis://39.105.154.114:6379")
+                                            //.addConnectionString("redis://39.105.154.114:6379")
                                             //.addConnectionString("redis://127.0.0.1:6381")
-                                            //.addConnectionString("redis://"+serverIpsStatic[2]+"6379")
+                                            .addConnectionString("redis://"+serverIpsStatic[2]+":6379")
                             );
                             slaveClient2
                                     .connect()
                                     .onSuccess(conn2 -> {
-                                        conn2.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
+                                        //conn2.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
                                         //conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
-                                        //conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
+                                        conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
                                                 .onSuccess(info2 -> {
                                                     // do something...
                                                     System.out.println("----set slave2");
@@ -79,18 +79,18 @@ public class RedisClientUtil {
                                                             Main.vertx,
                                                             new RedisOptions()
                                                                     .setType(RedisClientType.STANDALONE)
-                                                                    .addConnectionString("redis://39.107.249.226:26379")
+                                                                    //.addConnectionString("redis://39.107.249.226:26379")
                                                                     //.addConnectionString("redis://127.0.0.1:26379")
-                                                                    //.addConnectionString("redis://"+serverIpsStatic[0]+":26379")
+                                                                    .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
                                                     );
                                                     sentiClient1
                                                             .connect()
                                                             .onSuccess(conn3 -> {
                                                                 conn3.send(Request.cmd(Command.SENTINEL).arg("monitor")
                                                                         .arg("mymaster")
-                                                                        .arg("123.56.115.153")
+                                                                        //.arg("123.56.115.153")
                                                                         //.arg("127.0.0.1")
-                                                                        //.arg(serverIpsStatic[0])
+                                                                        .arg(serverIpsStatic[0])
                                                                         .arg("6379")
                                                                         .arg("2"))
                                                                         .onSuccess(info3 -> {
@@ -102,18 +102,18 @@ public class RedisClientUtil {
                                                                                     Main.vertx,
                                                                                     new RedisOptions()
                                                                                             .setType(RedisClientType.STANDALONE)
-                                                                                            .addConnectionString("redis://39.105.154.114:26379")
-                                                                            //.addConnectionString("redis://127.0.0.1:26380")
-                                                                            //.addConnectionString("redis://"+serverIpsStatic[1]+":26379")
+                                                                                            //.addConnectionString("redis://39.105.154.114:26379")
+                                                                                            //.addConnectionString("redis://127.0.0.1:26380")
+                                                                                            .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
                                                                             );
                                                                             sentiClient2
                                                                                     .connect()
                                                                                     .onSuccess(conn4 -> {
                                                                                         conn4.send(Request.cmd(Command.SENTINEL).arg("monitor")
                                                                                                 .arg("mymaster")
-                                                                                                .arg("123.56.115.153")
+                                                                                                //.arg("123.56.115.153")
                                                                                                 //.arg("127.0.0.1")
-                                                                                                //.arg(serverIpsStatic[0])
+                                                                                                .arg(serverIpsStatic[0])
                                                                                                 .arg("6379")
                                                                                                 .arg("2"))
                                                                                                 .onSuccess(info4 -> {
@@ -126,18 +126,18 @@ public class RedisClientUtil {
                                                                                                             Main.vertx,
                                                                                                             new RedisOptions()
                                                                                                                     .setType(RedisClientType.STANDALONE)
-                                                                                                                    .addConnectionString("redis://123.56.115.153:26379")
+                                                                                                                    //.addConnectionString("redis://123.56.115.153:26379")
                                                                                                                     //.addConnectionString("redis://127.0.0.1:26381")
-                                                                                                                    //.addConnectionString("redis://"+serverIpsStatic[2]+":26379")
+                                                                                                                    .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
                                                                                                     );
                                                                                                     sentiClient3
                                                                                                             .connect()
                                                                                                             .onSuccess(conn5 -> {
                                                                                                                 conn5.send(Request.cmd(Command.SENTINEL).arg("monitor")
                                                                                                                         .arg("mymaster")
-                                                                                                                        .arg("123.56.115.153")
+                                                                                                                        //.arg("123.56.115.153")
                                                                                                                         //.arg("127.0.0.1")
-                                                                                                                        //.arg(serverIpsStatic[0])
+                                                                                                                        .arg(serverIpsStatic[0])
                                                                                                                         .arg("6379")
                                                                                                                         .arg("2"))
                                                                                                                         .onSuccess(info5 -> {
@@ -148,11 +148,33 @@ public class RedisClientUtil {
                                                                                                                             } catch (InterruptedException e) {
                                                                                                                                 logger.error("--",e);
                                                                                                                             }
-                                                                                                                            sentiClient3.close();
-                                                                                                                            sentiClient2.close();
-                                                                                                                            sentiClient1.close();
-                                                                                                                            slaveClient2.close();
-                                                                                                                            slaveClient1.close();
+
+                                                                                                                            //标记已完成哨兵架构初始化
+                                                                                                                            lockAPI.set(Arrays.asList(isServerInited,"1")).onSuccess(value3 ->{
+                                                                                                                                //释放分布式锁
+                                                                                                                                ArrayList delArgs = new ArrayList<String>();
+                                                                                                                                String script =
+                                                                                                                                        "if redis.call('get',KEYS[1]) == ARGV[1] then" +
+                                                                                                                                                "   return redis.call('del',KEYS[1]) " +
+                                                                                                                                                "else" +
+                                                                                                                                                "   return 0 " +
+                                                                                                                                                "end";
+                                                                                                                                delArgs.add(script);
+                                                                                                                                delArgs.add("1");
+                                                                                                                                delArgs.add(lock_key);
+                                                                                                                                delArgs.add(setValue);
+                                                                                                                                lockAPI.eval(delArgs).onSuccess(value2->{
+                                                                                                                                    logger.info("---删除锁成功，开始关闭连接");
+
+                                                                                                                                    sentiClient3.close();
+                                                                                                                                    sentiClient2.close();
+                                                                                                                                    sentiClient1.close();
+                                                                                                                                    slaveClient2.close();
+                                                                                                                                    slaveClient1.close();
+                                                                                                                                    lockAPI.close();
+                                                                                                                                });
+                                                                                                                            });
+
                                                                                                                         });
                                                                                                             });
                                                                                                 });
@@ -188,9 +210,9 @@ public class RedisClientUtil {
                 Main.vertx,
                 new RedisOptions()
                         .setType(RedisClientType.STANDALONE)
-                        .addConnectionString("redis://123.56.115.153:6379")
-//                        .addConnectionString("redis://127.0.0.1:6381")
-//                        .addConnectionString("redis://"+serverIps[0]+"6379")
+                        //.addConnectionString("redis://123.56.115.153:6379")
+                        //.addConnectionString("redis://127.0.0.1:6381")
+                        .addConnectionString("redis://"+serverIpsStatic[0]+":6379")
         );
         RedisAPI lockAPI = RedisAPI.api(lockClient);
 
@@ -203,7 +225,11 @@ public class RedisClientUtil {
         args.add("EX");
         args.add(String.valueOf(60*60*1));
 
-        lockAPI.set(args).onSuccess(value->{
+        lockAPI.set(args)
+                .onFailure(fa->{
+                    fa.toString();
+                })
+                .onSuccess(value->{
             logger.info("----获取锁成功");
             List isInitedArgs = new ArrayList<String>();
             isInitedArgs.add(isServerInited);
@@ -211,27 +237,27 @@ public class RedisClientUtil {
                 if(exsist.toString().equals("0")){
                     // TODO: 2021/8/31 注释了初始化redis server
                     //初始化redis server核心逻辑
-                    init();
-                    //标记已完成哨兵架构初始化
-                    isInitedArgs.add("1");
-                    lockAPI.set(isInitedArgs).onSuccess(value3 ->{
-                        //释放分布式锁
-                        ArrayList delArgs = new ArrayList<String>();
-                        String script =
-                                "if redis.call('get',KEYS[1]) == ARGV[1] then" +
-                                        "   return redis.call('del',KEYS[1]) " +
-                                        "else" +
-                                        "   return 0 " +
-                                        "end";
-                        delArgs.add(script);
-                        delArgs.add("1");
-                        delArgs.add(lock_key);
-                        delArgs.add(setValue);
-                        lockAPI.eval(delArgs).onSuccess(value2->{
-                            logger.info("---删除锁成功");
-                            lockAPI.close();
-                        });
-                    });
+                    init(lockAPI , setValue);
+//                    //标记已完成哨兵架构初始化
+//                    isInitedArgs.add("1");
+//                    lockAPI.set(isInitedArgs).onSuccess(value3 ->{
+//                        //释放分布式锁
+//                        ArrayList delArgs = new ArrayList<String>();
+//                        String script =
+//                                "if redis.call('get',KEYS[1]) == ARGV[1] then" +
+//                                        "   return redis.call('del',KEYS[1]) " +
+//                                        "else" +
+//                                        "   return 0 " +
+//                                        "end";
+//                        delArgs.add(script);
+//                        delArgs.add("1");
+//                        delArgs.add(lock_key);
+//                        delArgs.add(setValue);
+//                        lockAPI.eval(delArgs).onSuccess(value2->{
+//                            logger.info("---删除锁成功");
+//                            lockAPI.close();
+//                        });
+//                    });
                 }else{
                     ArrayList delArgs = new ArrayList<String>();
                     String script =
@@ -280,15 +306,15 @@ public class RedisClientUtil {
                 Main.vertx,
                 new RedisOptions()
                         .setType(RedisClientType.SENTINEL)
-                        .addConnectionString("redis://39.107.249.226:26379")
-                        .addConnectionString("redis://39.105.154.114:26379")
-                        .addConnectionString("redis://123.56.115.153:26379")
+//                        .addConnectionString("redis://39.107.249.226:26379")
+//                        .addConnectionString("redis://39.105.154.114:26379")
+//                        .addConnectionString("redis://123.56.115.153:26379")
 //                        .addConnectionString("redis://127.0.0.1:26379")
 //                        .addConnectionString("redis://127.0.0.1:26380")
 //                        .addConnectionString("redis://127.0.0.1:26381")
-//                            .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
-//                            .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
-//                            .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
+                            .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
+                            .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
+                            .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
                         .setMasterName("mymaster")
                         .setRole(RedisRole.MASTER)
                         .setPoolCleanerInterval(-1)
@@ -314,21 +340,24 @@ public class RedisClientUtil {
     }
 
     public static String[] convertIp(String[] serverIps){
-        InetAddress addr = null;
-        try {
-            addr = InetAddress.getLocalHost();
-        } catch (UnknownHostException e) {
-        }
-        String localIp = addr.getHostAddress();
-        String[] ipsNew  = new String[3];
-        ipsNew[0] = localIp;
-        int i = 1;
-        for(String ip : serverIps){
-            if(i<3 && !ip.equals(localIp)){
-                ipsNew[i] = ip;
-                i++;
-            }
-        }
-        return ipsNew;
+//        InetAddress addr = null;
+//        try {
+//            addr = InetAddress.getLocalHost();
+//        } catch (UnknownHostException e) {
+//        }
+//        String localIp = addr.getHostAddress();
+//        String[] ipsNew  = new String[3];
+//        ipsNew[0] = localIp;
+//        int i = 1;
+//        for(String ip : serverIps){
+//            if(i<3 && !ip.equals(localIp)){
+//                ipsNew[i] = ip;
+//                i++;
+//            }
+//        }
+//        return ipsNew;
+
+        // TODO: 2021/9/6  暂时不作转换
+        return serverIps;
     }
 }

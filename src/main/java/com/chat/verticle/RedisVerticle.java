@@ -31,7 +31,7 @@ public class RedisVerticle extends AbstractVerticle {
     public void start() throws Exception {
         System.out.println("---------"+Thread.currentThread().getName());
         updateCluster();
-        redisClient.start(this);
+//        redisClient.start(this);
     }
 
     private void updateCluster(){

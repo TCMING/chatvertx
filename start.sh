@@ -21,9 +21,9 @@ function deploy() {
 
 # shellcheck disable=SC2120
 # shellcheck disable=SC2112
-function run() {l
+function run() {
   cd ~ || exit
-  /usr/local/redis/redis-6.2.5/src/redis-sentinel  /usr/local/redis/redis-6.2.5/sentinel.conf
+  /usr/local/redis/redis-6.2.5/src/redis-sentinel  /usr/local/redis/redis-6.2.5/mysentinel.conf
   sleep 20s
   # 请务必使用后台运行的方式
   java -Xms3096m -Xmx3096m -XX:+UseG1GC -jar "${app_file_name}" > run.log &
