@@ -12,6 +12,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -32,50 +33,30 @@ public class JwtUtils {
      */
     public static String createToken(String username) {
 
-//        Calendar nowTime = Calendar.getInstance();
-//        nowTime.add(Calendar.MINUTE,6000);
-//        Date expiresDate = nowTime.getTime();
-
         return JWT.create().withAudience(username)   //签发对象
 //                .withIssuedAt(new Date())    //发行时间
 //                .withExpiresAt(expiresDate)  //有效时间
                 .sign(Algorithm.HMAC256(username+"hello"));   //加密
     }
-    // TODO
-    /**
-//     * 检验合法性，其中secret参数就应该传入的是用户的id
-//     * @param token
-//     */
-//    public static void verifyToken(String token, String secret) throws RuntimeException {
-//        DecodedJWT jwt = null;
-//        try {
-//            JWTVerifier verifier = JWT.require(Algorithm.HMAC256(secret+"hello")).build();
-//            jwt = verifier.verify(token);
-//        } catch (Exception e) {
-//            logger.error("----",e);
-//            //效验失败
-//            throw new AuthException2("token校验失败");
-//        }
-//    }
-//
-//    /**
-//     * 获取签发对象
-//     */
-//    public static String getAudience(String token) throws RuntimeException {
-//        String audience = null;
-//        try {
-//            audience = JWT.decode(token).getAudience().get(0);
-//        } catch (JWTDecodeException j) {
-//            //这里是token解析失败
-//            throw new AuthException3("token解析失败");
-//        }
-//        return audience;
-//    }
 
-    /**
-     * 通过载荷名字获取载荷的值
-     */
-    public static Claim getClaimByName(String token, String name){
-        return JWT.decode(token).getClaim(name);
+    public static String getAudience(String token) throws RuntimeException {
+        try {
+            return JWT.decode(token).getAudience().get(0);
+        } catch (JWTDecodeException j) {
+            return null;
+        }
+    }
+
+    public static String parseUsername(String authorization){
+        try {
+            if (authorization == null) {
+                return null;
+            }
+            String token = authorization.split(" ")[1];
+            return JwtUtils.getAudience(token);
+        } catch (Exception e) {
+            return null;
+        }
+
     }
 }

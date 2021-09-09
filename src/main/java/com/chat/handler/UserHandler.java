@@ -3,11 +3,9 @@ package com.chat.handler;
 import com.chat.Main;
 import com.chat.model.UserDto;
 import com.chat.model.UserRequest;
-import com.chat.utils.BizCheckUtils;
+import com.chat.model.UserResponse;
 import com.chat.utils.GsonUtils;
 import com.chat.utils.JwtUtils;
-import com.chat.verticle.RedisVerticle;
-import io.vertx.core.Handler;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
@@ -16,30 +14,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-import static com.chat.verticle.ChatServer.out;
-import static com.chat.verticle.ChatServer.sendError;
+import static com.chat.verticle.ChatVerticle.out;
+import static com.chat.verticle.ChatVerticle.sendError;
 
 
 public class UserHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(RedisVerticle.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserHandler.class);
+
+//    public static final String REDIS_USER_ID_INIT = "redis.user.id.init";
 
     public static final String REDIS_USER_CREATE = "redis.user.create";
 
-    public static final String REDIS_USER_ID_GET = "redis.user.id.get";
+    public static final String REDIS_USER_ROOM_ID_UPDATE = "redis.user.room.id.update";
 
-    public static final String REDIS_USER_SINGLE_QUERY = "redis.user.single.query";
-
-    public static final String REDIS_USER_SINGLE_QUERY_STRING = "redis.user.single.query.string";
+    public static final String REDIS_USER_QUERY = "redis.user.query";
 
     public void userLogin(RoutingContext context) {
         try {
             String username = context.request().getParam("username");
             String password = context.request().getParam("password");
-            logger.info("userLogin " + username +" "+ password);
-
             EventBus bus = Main.vertx.eventBus();
-            bus.<UserDto>request(REDIS_USER_SINGLE_QUERY, username, queryReply ->{
+            bus.<UserDto>request(REDIS_USER_QUERY, username, queryReply ->{
                 if(queryReply.succeeded() && queryReply.result() != null){
                     UserDto userInfo = queryReply.result().body();
                     if(userInfo != null && StringUtils.equals(username,userInfo.getUsername())
@@ -59,14 +55,17 @@ public class UserHandler {
     public void queryUserInfo(RoutingContext context) {
         String username = context.request().getParam("username");
         EventBus bus = Main.vertx.eventBus();
-        bus.<String>request(REDIS_USER_SINGLE_QUERY_STRING, username, queryReply ->{
+        bus.<UserDto>request(REDIS_USER_QUERY, username, queryReply ->{
             if(queryReply.succeeded() && queryReply.result() != null){
-                String userInfo = queryReply.result().body();
-                out(context,userInfo);
+                UserDto userInfo = queryReply.result().body();
+                UserResponse response = new UserResponse(userInfo.getFirstName(),userInfo.getLastName(),
+                        userInfo.getEmail(),userInfo.getPhone());
+                out(context,GsonUtils.toJsonString(response));
             }else{
                 sendError(context,"Invalid username supplied");
             }
         });
+        logger.info("test: 主线程 结束 current thread={}", Thread.currentThread().getName());
     }
 
     public void addUser(RoutingContext context) {
@@ -82,27 +81,20 @@ public class UserHandler {
             userDto.setPhone(userRequest.getPhone());
 
             EventBus bus = Main.vertx.eventBus();
-            bus.<UserDto>request(REDIS_USER_SINGLE_QUERY, userDto.getUsername(), queryReply ->{
+            bus.<UserDto>request(REDIS_USER_QUERY, userDto.getUsername(), queryReply ->{
                 if(queryReply.succeeded() ){
                     UserDto queryUserInfo = queryReply.result().body();
                     if(queryUserInfo == null){
-                        bus.<Integer>request(REDIS_USER_ID_GET,1,idGetReply->{
-                            if(idGetReply.succeeded() && idGetReply.result() != null && idGetReply.result().body() > 0){
-                                userDto.setId(idGetReply.result().body());
-                                bus.<Boolean>request(REDIS_USER_CREATE,userDto, saveReply ->{
-                                    if(saveReply.succeeded() && saveReply.result().body()){
-                                        out(context, Json.encodePrettily(true));
-                                    }else {
-                                        context.fail(400);
-                                    }
-                                });
-                            }else{
-                                context.fail(400);
+                        bus.<Boolean>request(REDIS_USER_CREATE, userDto, saveReply -> {
+                            if (saveReply.succeeded() && saveReply.result().body()) {
+                                out(context, Json.encodePrettily(true));
+                                return;
                             }
+                            context.fail(400);
                         });
+                    }else{
+                        out(context, Json.encodePrettily(true));
                     }
-                    out(context, Json.encodePrettily(true));
-
                 }else{
                     context.fail(400);
                 }

@@ -1,5 +1,7 @@
 package com.chat.verticle;
 
+import com.chat.dao.MessageRedisDao;
+import com.chat.dao.RoomRedisDao;
 import com.chat.dao.UserRedisDao;
 import com.chat.utils.RedisClientUtil;
 import com.chat.utils.SingleRedisClient;
@@ -17,18 +19,14 @@ public class RedisVerticle extends AbstractVerticle {
 
     private UserRedisDao userRedisDao;
 
+    private RoomRedisDao roomRedisDao;
+
+    private MessageRedisDao messageRedisDao;
+
     public static final String UPDATE_CLUSTER_ADD = "update_cluster_add";
 
-    public static final String REDIS_USER_SINGLE_QUERY = "redis.user.single.query";
-
-    public static final String REDIS_USER_CREATE = "redis.user.create";
-
-    public static final String REDIS_USER_QUERY_ALL = "redis.user.query.all";
-
-    public static final String REDIS_ROOM_SAVE = "redis.room.save";
-
     @Override
-    public void start() throws Exception {
+    public void start(){
         System.out.println("---------"+Thread.currentThread().getName());
         updateCluster();
 //        redisClient.start(this);
@@ -44,11 +42,11 @@ public class RedisVerticle extends AbstractVerticle {
         } );
     }
 
-    public UserRedisDao getUserRedisDao() {
-        return userRedisDao;
+    public void initRedisDao(RedisAPI redisAPI) {
+        this.userRedisDao = new UserRedisDao(redisAPI);
+        this.roomRedisDao = new RoomRedisDao(redisAPI);
+        this.messageRedisDao = new MessageRedisDao(redisAPI);
     }
 
-    public void setUserRedisDao(RedisAPI redisAPI) {
-        this.userRedisDao = new UserRedisDao(redisAPI);
-    }
+
 }

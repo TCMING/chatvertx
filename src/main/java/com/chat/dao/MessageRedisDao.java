@@ -1,59 +1,83 @@
-//package com.chat.dao;
-//
-//import com.chat.model.MessageDto;
-//
-//import java.util.HashMap;
-//import java.util.List;
-//
-//public class MessageRedisDao {
-//
-//
-//    private String messageListKey = "messageList";
-//
-//    private String messageIdSet = "messageIdSet";
-//
-//    public void saveMessage(MessageDto messageDto) {
-//        redisTemplate.opsForList().leftPush(messageDto.getRoomId()+messageListKey, messageDto);
-//        // TODO: 2021/7/25 事务？
-//        redisTemplate.opsForSet().add(messageIdSet,messageDto.getId());
-//    }
-//
-//    public void saveMessage(List<MessageDto> list) {
-//
-//        List<String> result = redisTemplate.executePipelined(new RedisCallback() {
-//            @Override
-//            public Object doInRedis(RedisConnection connection) throws DataAccessException {
-//                connection.openPipeline();
-//                list.stream().forEach(new Consumer<MessageDto>() {
-//                    @Override
-//                    public void accept(MessageDto messageDto) {
-//                        byte[] rawKey = redisTemplate.getKeySerializer().serialize(messageDto.getRoomId()+messageListKey);
-//                        byte[] rawValue = redisTemplate.getValueSerializer().serialize(messageDto);
-//                        connection.lPush(rawKey,rawValue);
-//
-//                        byte[] rawKeySet = redisTemplate.getKeySerializer().serialize(messageIdSet);
-//                        byte[][] rawValuesSet = new byte[1][];
-//                        rawValuesSet[0] = redisTemplate.getValueSerializer().serialize(messageDto.getId());
-//                        connection.sAdd(rawKeySet, rawValuesSet);
-//                    }
-//                });
-//                return null;
-//            }
-//        });
-//    }
-//
-//    public boolean queryMessage(String id){
-//        return redisTemplate.opsForSet().isMember(messageIdSet,id);
-//    }
-//
-//    public List<MessageRetrive> queryAllMessage(HashMap<String,Integer> params){
-//        String key = params.get("roomId")+messageListKey;
-//        int startIndex = params.get("startIndex");
-//        int endIndex = startIndex+params.get("pageSize")-1;
-//        if (endIndex<0){
-//            return new ArrayList<MessageRetrive>();
-//        }
-//        return redisTemplate.opsForList().range(key,params.get("startIndex"),endIndex);
-//    }
-//
-//}
+package com.chat.dao;
+
+import com.chat.Main;
+import com.chat.handler.MessageHandler;
+import com.chat.handler.RoomHandler;
+import com.chat.handler.UserHandler;
+import com.chat.model.RoomDto;
+import com.chat.model.UserDto;
+import com.chat.utils.GsonUtils;
+import com.chat.verticle.RedisVerticle;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.redis.client.RedisAPI;
+import io.vertx.redis.client.ResponseType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+public class MessageRedisDao {
+
+    private static final Logger logger = LoggerFactory.getLogger(RedisVerticle.class);
+
+    private final RedisAPI redisAPI;
+
+    private final String RoomDtoList = "RoomDtoList";
+
+    private final String IdRoomMap = "IdRoomMap";
+
+    private final String RoomIdKey = "RoomIdKey";
+
+    public MessageRedisDao(RedisAPI redisAPI) {
+        this.redisAPI = redisAPI;
+        this.baseOperate();
+    }
+
+    public void baseOperate() {
+        EventBus bus = Main.vertx.eventBus();
+
+        //保存房间消息 key(roomid+message) value(message)
+        bus.<List<String>>consumer(MessageHandler.REDIS_MESSAGE_SEND).handler(msg ->{
+            List<String> saveInfo = msg.body();
+            redisAPI.lpush(saveInfo, res -> {
+                try {
+                    if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.NUMBER) {
+                        logger.info("保存房间消息列表完成 " + GsonUtils.toJsonString(saveInfo));
+                        msg.reply(true);
+                    } else {
+                        logger.warn("保存房间消息列表失败 " + GsonUtils.toJsonString(saveInfo));
+                        msg.reply(false);
+                    }
+                } catch (Exception e) {
+                    msg.fail(400, e.getMessage());
+                }
+            });
+        });
+
+        //查询房间消息 key(roomid+message) value(message)
+        bus.<List<String>>consumer(MessageHandler.REDIS_MESSAGE_RETRIEVE).handler(msg ->{
+            List<String> queryParam = msg.body();
+            if(queryParam == null || queryParam.size() != 3){
+                msg.reply(false);
+            }
+            redisAPI.lrange(queryParam.get(0),queryParam.get(1),queryParam.get(2), res -> {
+                try {
+                    if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.MULTI) {
+                        logger.info("查询房间消息完成 " + GsonUtils.toJsonString(queryParam));
+                        msg.reply(res.result().toString());
+                    } else {
+                        logger.warn("查询房间消息失败 " + GsonUtils.toJsonString(queryParam));
+                        msg.reply(null);
+                    }
+                } catch (Exception e) {
+                    msg.fail(400, e.getMessage());
+                }
+            });
+        });
+
+    }
+
+
+}

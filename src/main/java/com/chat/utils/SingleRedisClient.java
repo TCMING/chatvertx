@@ -1,7 +1,6 @@
 package com.chat.utils;
 
 import com.chat.Main;
-import com.chat.dao.UserRedisDao;
 import com.chat.verticle.RedisVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -25,7 +24,7 @@ public class SingleRedisClient {
             if (onCreate.succeeded()) {
                 logger.info("Redis 连接成功！");
                 redis = RedisAPI.api(client);
-                redisVerticle.setUserRedisDao(redis);
+                redisVerticle.initRedisDao(redis);
             }else if(onCreate.failed()) {
                 logger.error("Redis 连接失败！");
             }

@@ -1,9 +1,6 @@
 package com.chat.utils;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -12,10 +9,7 @@ import java.beans.BeanInfo;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @Author tianchengming
@@ -54,6 +48,22 @@ public class GsonUtils {
         if (gson != null) {
             t = gson.fromJson(gsonString, cls);
         }
+        return t;
+    }
+
+    /**
+     * json对象转class
+     * @param jsonObject
+     * @param cls
+     * @param <T>
+     * @return
+     */
+    public static <T> T jsonObjectToBean(JsonObject jsonObject, Class<T> cls) {
+        T t = null;
+        if (gson != null) {
+            t = gson.fromJson(jsonObject, cls);
+        }
+
         return t;
     }
 
@@ -115,20 +125,23 @@ public class GsonUtils {
      * @param bean
      * @return
      */
-    public static <T> Map<String, Object> bean2Map(T bean)throws Exception{
+    public static <T> Map<String,String> bean2Map(T bean){
         if(bean == null) {
             return null;
         }
-        Map<String, Object>  map      = new HashMap<>();
-        BeanInfo             beanInfo = Introspector.getBeanInfo(bean.getClass());
-        PropertyDescriptor[] pds      = beanInfo.getPropertyDescriptors();
-        for(PropertyDescriptor pd : pds) {
-            String key       = pd.getName();
-            Method getMethod = pd.getReadMethod();
-            Object o         = getMethod.invoke(bean);
-            map.put(key, o);
+        try {
+            JsonElement jsonElement = gson.toJsonTree(bean);
+            JsonObject jsonObject = jsonElement.getAsJsonObject();
+            Set<Map.Entry<String, JsonElement>> sets = jsonObject.entrySet();
+            Map<String,String> map = new HashMap<>();
+            sets.forEach(entry -> {
+                map.put(entry.getKey(),entry.getValue().toString());
+            });
+            return map;
+        }catch (Exception e){
+            return null;
         }
-        return map;
+
     }
 
 }
