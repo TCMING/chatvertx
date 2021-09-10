@@ -43,7 +43,6 @@ public class RedisClientUtil {
                     logger.error("",f2.getCause().getStackTrace());
                 })
             .onSuccess(conn -> {
-                logger.info("----in 1");
                 //conn.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
                 //conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
                 conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
@@ -68,7 +67,7 @@ public class RedisClientUtil {
                                     .onSuccess(conn2 -> {
                                         //conn2.send(Request.cmd(Command.SLAVEOF).arg("123.56.115.153").arg("6379"))
                                         //conn.send(Request.cmd(Command.SLAVEOF).arg("127.0.0.1").arg("6379"))
-                                        conn.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
+                                        conn2.send(Request.cmd(Command.SLAVEOF).arg(serverIpsStatic[0]).arg("6379"))
                                                 .onSuccess(info2 -> {
                                                     // do something...
                                                     System.out.println("----set slave2");
@@ -238,26 +237,6 @@ public class RedisClientUtil {
                     // TODO: 2021/8/31 注释了初始化redis server
                     //初始化redis server核心逻辑
                     init(lockAPI , setValue);
-//                    //标记已完成哨兵架构初始化
-//                    isInitedArgs.add("1");
-//                    lockAPI.set(isInitedArgs).onSuccess(value3 ->{
-//                        //释放分布式锁
-//                        ArrayList delArgs = new ArrayList<String>();
-//                        String script =
-//                                "if redis.call('get',KEYS[1]) == ARGV[1] then" +
-//                                        "   return redis.call('del',KEYS[1]) " +
-//                                        "else" +
-//                                        "   return 0 " +
-//                                        "end";
-//                        delArgs.add(script);
-//                        delArgs.add("1");
-//                        delArgs.add(lock_key);
-//                        delArgs.add(setValue);
-//                        lockAPI.eval(delArgs).onSuccess(value2->{
-//                            logger.info("---删除锁成功");
-//                            lockAPI.close();
-//                        });
-//                    });
                 }else{
                     ArrayList delArgs = new ArrayList<String>();
                     String script =
