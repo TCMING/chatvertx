@@ -191,7 +191,11 @@ public class RedisClientUtil {
     //只受updateCluster调用
     //需要获取分布式锁
     public static boolean initRedisServer(String json){
-        String[] serverIps= json.split(",");
+        List<String> ipList = GsonUtils.jsonToList(json , String.class);
+        String[] serverIps = new String[3];
+        for(int index=0 ; index < 3 ; index++){
+            serverIps[index] = ipList.get(index);
+        }
         String[] ipsNew = convertIp(serverIps);
         serverIpsStatic = ipsNew;
         //保存ip到redis.properties,为了重启后初始化高可用客户端
@@ -238,6 +242,7 @@ public class RedisClientUtil {
                     //初始化redis server核心逻辑
                     init(lockAPI , setValue);
                 }else{
+                    logger.info("----need not to init");
                     ArrayList delArgs = new ArrayList<String>();
                     String script =
                             "if redis.call('get',KEYS[1]) == ARGV[1] then" +
@@ -273,8 +278,13 @@ public class RedisClientUtil {
             try {
                 prop.load(new FileInputStream(file));
                 String json = prop.getProperty("ips");
-                String[] ips = json.split(",");
-                serverIpsStatic = convertIp(ips);
+//                String[] ips = json.split(",");
+                List<String> ipList = GsonUtils.jsonToList(json , String.class);
+                String[] serverIps = new String[3];
+                for(int index=0 ; index < 3 ; index++){
+                    serverIps[index] = ipList.get(index);
+                }
+                serverIpsStatic = convertIp(serverIps);
             } catch (IOException e) {
                 logger.error("--error", e);
             }
