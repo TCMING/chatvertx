@@ -4,6 +4,7 @@ import com.chat.Main;
 import io.vertx.redis.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -26,7 +27,7 @@ public class RedisClientUtil {
 
     static Properties prop = new Properties();
 
-    public static void init(RedisAPI lockAPI , String setValue){
+    public static void init(RedisAPI lockAPI , String setValue , String json){
 
 //        初始化主从关系
         Redis slaveClient1 = Redis.createClient(
@@ -150,27 +151,30 @@ public class RedisClientUtil {
 
                                                                                                                             //标记已完成哨兵架构初始化
                                                                                                                             lockAPI.set(Arrays.asList(isServerInited,"1")).onSuccess(value3 ->{
-                                                                                                                                //释放分布式锁
-                                                                                                                                ArrayList delArgs = new ArrayList<String>();
-                                                                                                                                String script =
-                                                                                                                                        "if redis.call('get',KEYS[1]) == ARGV[1] then" +
-                                                                                                                                                "   return redis.call('del',KEYS[1]) " +
-                                                                                                                                                "else" +
-                                                                                                                                                "   return 0 " +
-                                                                                                                                                "end";
-                                                                                                                                delArgs.add(script);
-                                                                                                                                delArgs.add("1");
-                                                                                                                                delArgs.add(lock_key);
-                                                                                                                                delArgs.add(setValue);
-                                                                                                                                lockAPI.eval(delArgs).onSuccess(value2->{
-                                                                                                                                    logger.info("---删除锁成功，开始关闭连接");
-
-                                                                                                                                    sentiClient3.close();
-                                                                                                                                    sentiClient2.close();
-                                                                                                                                    sentiClient1.close();
-                                                                                                                                    slaveClient2.close();
-                                                                                                                                    slaveClient1.close();
-                                                                                                                                    lockAPI.close();
+                                                                                                                                //保存ip到主redis，即serverIpsStatic[0]，为了重启后初始化高可用客户端
+                                                                                                                                lockAPI.set(Arrays.asList("ips", json)).onSuccess(value4 -> {
+                                                                                                                                    logger.info("---ips save successed");
+                                                                                                                                    //释放分布式锁
+                                                                                                                                    ArrayList delArgs = new ArrayList<String>();
+                                                                                                                                    String script =
+                                                                                                                                            "if redis.call('get',KEYS[1]) == ARGV[1] then" +
+                                                                                                                                                    "   return redis.call('del',KEYS[1]) " +
+                                                                                                                                                    "else" +
+                                                                                                                                                    "   return 0 " +
+                                                                                                                                                    "end";
+                                                                                                                                    delArgs.add(script);
+                                                                                                                                    delArgs.add("1");
+                                                                                                                                    delArgs.add(lock_key);
+                                                                                                                                    delArgs.add(setValue);
+                                                                                                                                    lockAPI.eval(delArgs).onSuccess(value2->{
+                                                                                                                                        logger.info("---删除锁成功，开始关闭连接");
+                                                                                                                                        sentiClient3.close();
+                                                                                                                                        sentiClient2.close();
+                                                                                                                                        sentiClient1.close();
+                                                                                                                                        slaveClient2.close();
+                                                                                                                                        slaveClient1.close();
+                                                                                                                                        lockAPI.close();
+                                                                                                                                    });
                                                                                                                                 });
                                                                                                                             });
 
@@ -191,22 +195,18 @@ public class RedisClientUtil {
     //只受updateCluster调用
     //需要获取分布式锁
     public static boolean initRedisServer(String json){
-        List<String> ipList = GsonUtils.jsonToList(json , String.class);
-        String[] serverIps = new String[3];
-        for(int index=0 ; index < 3 ; index++){
-            serverIps[index] = ipList.get(index);
-        }
-        String[] ipsNew = convertIp(serverIps);
-        serverIpsStatic = ipsNew;
+
+        serverIpsStatic = convertIp(json);
+
         //保存ip到redis.properties,为了重启后初始化高可用客户端
-        FileOutputStream oFile = null;//true表示追加打开
+        /*FileOutputStream oFile = null;//true表示追加打开
         try {
             oFile = new FileOutputStream("redis.properties", false);
             prop.setProperty("ips", json);
             prop.store(oFile, "The redis properties file");
             oFile.close();
         } catch (IOException e) {
-        }
+        }*/
 
         //初始化redis server
         Redis lockClient = Redis.createClient(
@@ -240,7 +240,7 @@ public class RedisClientUtil {
                 if(exsist.toString().equals("0")){
                     // TODO: 2021/8/31 注释了初始化redis server
                     //初始化redis server核心逻辑
-                    init(lockAPI , setValue);
+                    init(lockAPI , setValue , json);
                 }else{
                     logger.info("----need not to init");
                     ArrayList delArgs = new ArrayList<String>();
@@ -274,20 +274,21 @@ public class RedisClientUtil {
     public static Redis initRedisClient(){
         //重新加载serverIpsStatic
         if (serverIpsStatic == null) {
-            File file = new File("redis.properties");
+
+            /*File file = new File("redis.properties");
             try {
                 prop.load(new FileInputStream(file));
                 String json = prop.getProperty("ips");
-//                String[] ips = json.split(",");
-                List<String> ipList = GsonUtils.jsonToList(json , String.class);
-                String[] serverIps = new String[3];
-                for(int index=0 ; index < 3 ; index++){
-                    serverIps[index] = ipList.get(index);
-                }
-                serverIpsStatic = convertIp(serverIps);
+                serverIpsStatic = convertIp(json);
             } catch (IOException e) {
                 logger.error("--error", e);
-            }
+            }*/
+
+            // TODO: 2021/9/11 采用jedis访问redis
+//            Jedis jedis = new Jedis("127.0.0.1" , 6379);
+            Jedis jedis = new Jedis("101.200.73.121" , 6379);
+            String json = jedis.get("ips");
+            serverIpsStatic = convertIp(json);
         }
         BizCheckUtils.checkNull(serverIpsStatic,"serverIpsStatic初始化失败");
         //初始化RedisClient
@@ -295,9 +296,6 @@ public class RedisClientUtil {
                 Main.vertx,
                 new RedisOptions()
                         .setType(RedisClientType.SENTINEL)
-//                        .addConnectionString("redis://39.107.249.226:26379")
-//                        .addConnectionString("redis://39.105.154.114:26379")
-//                        .addConnectionString("redis://123.56.115.153:26379")
 //                        .addConnectionString("redis://127.0.0.1:26379")
 //                        .addConnectionString("redis://127.0.0.1:26380")
 //                        .addConnectionString("redis://127.0.0.1:26381")
@@ -328,25 +326,12 @@ public class RedisClientUtil {
         }
     }
 
-    public static String[] convertIp(String[] serverIps){
-//        InetAddress addr = null;
-//        try {
-//            addr = InetAddress.getLocalHost();
-//        } catch (UnknownHostException e) {
-//        }
-//        String localIp = addr.getHostAddress();
-//        String[] ipsNew  = new String[3];
-//        ipsNew[0] = localIp;
-//        int i = 1;
-//        for(String ip : serverIps){
-//            if(i<3 && !ip.equals(localIp)){
-//                ipsNew[i] = ip;
-//                i++;
-//            }
-//        }
-//        return ipsNew;
-
-        // TODO: 2021/9/6  暂时不作转换
+    public static String[] convertIp(String json){
+        List<String> ipList = GsonUtils.jsonToList(json , String.class);
+        String[] serverIps = new String[3];
+        for(int index=0 ; index < 3 ; index++){
+            serverIps[index] = ipList.get(index);
+        }
         return serverIps;
     }
 }

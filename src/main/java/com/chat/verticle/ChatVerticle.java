@@ -3,6 +3,7 @@ package com.chat.verticle;
 import com.chat.handler.MessageHandler;
 import com.chat.handler.RoomHandler;
 import com.chat.handler.UserHandler;
+import com.chat.utils.RedisClientUtil;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
@@ -39,6 +40,7 @@ public class ChatVerticle extends AbstractVerticle {
 
         router.get("/test").handler(this::test);
         router.post("/updateCluster").handler(this::updateCluster);
+        router.get("/checkCluster").handler(this::checkCluster);
 
         //user
         router.post("/user").handler(userHandler::addUser);
@@ -74,24 +76,15 @@ public class ChatVerticle extends AbstractVerticle {
         });
     }
 
-    private void test(RoutingContext routingContext){
-        Redis redis = Redis.createClient(
-                vertx,
-                new RedisOptions()
-                        .setType(RedisClientType.SENTINEL)
-                        .addConnectionString("redis://10.63.5.164:26379")
-                        .addConnectionString("redis://10.63.5.164:26380")
-                        .addConnectionString("redis://10.63.5.164:26381")
-                        .setMasterName("mymaster")
-                        .setRole(RedisRole.MASTER)
-                        .setMaxPoolSize(8)
-                        .setMaxWaitingHandlers(8));
+    private void checkCluster(RoutingContext routingContext){
+        logger.info("---"+Thread.currentThread().getName());
+        out(routingContext , "");
+    }
 
-        RedisAPI api = RedisAPI.api(redis);
-        api.get("test").onSuccess(value->{
-            System.out.println("---------"+Thread.currentThread().getName());
-            System.out.println(value);
-            out(routingContext, value.toString());
+    private void test(RoutingContext routingContext){
+        RedisAPI api = RedisClientUtil.getRedisAPI();
+        api.get("ips").onSuccess( ips -> {
+            out(routingContext , ips.toString());
         });
     }
 
