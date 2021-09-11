@@ -56,7 +56,7 @@ public class UserHandler {
         String username = context.request().getParam("username");
         EventBus bus = Main.vertx.eventBus();
         bus.<UserDto>request(REDIS_USER_QUERY, username, queryReply ->{
-            if(queryReply.succeeded() && queryReply.result() != null){
+            if(queryReply.succeeded() && queryReply.result() != null && queryReply.result().body() != null){
                 UserDto userInfo = queryReply.result().body();
                 UserResponse response = new UserResponse(userInfo.getFirstName(),userInfo.getLastName(),
                         userInfo.getEmail(),userInfo.getPhone());

@@ -47,13 +47,7 @@ public class UserRedisDao {
             RedisClientUtil.getRedisAPI().hgetall(username, res -> {
                 try {
                     if (res.succeeded() && res.result() != null && res.result().size()>0 && res.result().type() == ResponseType.MULTI) {
-                        List<String> values = GsonUtils.jsonToList(res.result().toString(),String.class);
-                        JsonObject jsonObject = new JsonObject();
-                        for(int i=0; i < values.size(); ){
-                            jsonObject.addProperty(values.get(i++),values.get(i++));
-                        }
-
-                        UserDto userDto = GsonUtils.jsonObjectToBean(jsonObject,UserDto.class);
+                        UserDto userDto = GsonUtils.jsonToBean(res.result().toString(),UserDto.class);
                         if(userDto.getUsername() != null){
                             msg.reply(userDto);
                             return;
