@@ -15,8 +15,6 @@ public class RedisVerticle extends AbstractVerticle {
 
     public static final Logger logger = LoggerFactory.getLogger(RedisVerticle.class);
 
-    private SingleRedisClient redisClient = new SingleRedisClient();
-
     private UserRedisDao userRedisDao;
 
     private RoomRedisDao roomRedisDao;
@@ -29,7 +27,7 @@ public class RedisVerticle extends AbstractVerticle {
     public void start(){
         System.out.println("---------"+Thread.currentThread().getName());
         updateCluster();
-//        redisClient.start(this);
+        initRedisDao();
     }
 
     private void updateCluster(){
@@ -42,11 +40,17 @@ public class RedisVerticle extends AbstractVerticle {
         } );
     }
 
+    @Deprecated
     public void initRedisDao(RedisAPI redisAPI) {
         this.userRedisDao = new UserRedisDao(redisAPI);
         this.roomRedisDao = new RoomRedisDao(redisAPI);
         this.messageRedisDao = new MessageRedisDao(redisAPI);
     }
 
+    public void initRedisDao() {
+        this.userRedisDao = new UserRedisDao();
+        this.roomRedisDao = new RoomRedisDao();
+        this.messageRedisDao = new MessageRedisDao();
+    }
 
 }

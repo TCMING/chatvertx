@@ -5,6 +5,7 @@ import com.chat.handler.UserHandler;
 import com.chat.model.UserDto;
 import com.chat.utils.BizCheckUtils;
 import com.chat.utils.GsonUtils;
+import com.chat.utils.RedisClientUtil;
 import com.chat.verticle.RedisVerticle;
 import com.google.gson.JsonObject;
 import io.vertx.core.eventbus.EventBus;
@@ -23,43 +24,29 @@ public class UserRedisDao {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisVerticle.class);
 
-    private final RedisAPI redisAPI;
+    private RedisAPI redisAPI;
 
     private final String UserIdKey = "UserIdKey";
 
+    @Deprecated
     public UserRedisDao(RedisAPI redisAPI) {
         this.redisAPI = redisAPI;
+        this.baseOperate();
+    }
+
+    public UserRedisDao() {
         this.baseOperate();
     }
 
     public void baseOperate() {
         EventBus bus = Main.vertx.eventBus();
 
-        //查询单个用户id 没有要求要用，暂时去除
-//        bus.<Integer>consumer(UserHandler.REDIS_USER_ID_INIT).handler(msg ->{
-//            //默认增加 1,其实可以先申请若干个,缓存起来减少申请次数,暂时不做修改
-//            redisAPI.incrby(UserIdKey, "1", res -> {
-//                try {
-//                    if (res.succeeded() && res.result() != null && res.result().type() == ResponseType.NUMBER) {
-//                        Integer userId = res.result().toInteger();
-//                        logger.info("查询用户id完成,userid={} ", userId );
-//                        msg.reply(userId);
-//                    } else {
-//                        logger.info("查询用户id失败 ");
-//                        msg.reply(-1);
-//                    }
-//                } catch (Exception e) {
-//                    msg.fail(400, e.getMessage());
-//                }
-//            });
-//        });
-
         //查询单个用户
         bus.<String>consumer(UserHandler.REDIS_USER_QUERY).handler(msg ->{
             String username = msg.body();
-            redisAPI.hgetall(username, res -> {
+            RedisClientUtil.getRedisAPI().hgetall(username, res -> {
                 try {
-                    if (res.succeeded() && res.result() != null && res.result().type() == ResponseType.MULTI) {
+                    if (res.succeeded() && res.result() != null && res.result().size()>0 && res.result().type() == ResponseType.MULTI) {
                         List<String> values = GsonUtils.jsonToList(res.result().toString(),String.class);
                         JsonObject jsonObject = new JsonObject();
                         for(int i=0; i < values.size(); ){
@@ -74,6 +61,7 @@ public class UserRedisDao {
                     }
                     msg.reply(null);
                 } catch (Exception e) {
+                    logger.error("--",e);
                     msg.fail(400, e.getMessage());
                 }
             });
@@ -94,7 +82,7 @@ public class UserRedisDao {
                 args.add(key);
                 args.add(value);
             });
-            redisAPI.hset(args, res -> {
+            RedisClientUtil.getRedisAPI().hset(args, res -> {
                 try {
                     if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.NUMBER) {
                         logger.info("保存用户信息完成 " + userDto.getUsername());
@@ -114,7 +102,7 @@ public class UserRedisDao {
             UserDto userDto = msg.body();
 
             List<String> args = Stream.of(userDto.getUsername(), "roomId",String.valueOf(userDto.getRoomId())).collect(Collectors.toList());
-            redisAPI.hset(args, res -> {
+            RedisClientUtil.getRedisAPI().hset(args, res -> {
                 try {
                     if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.NUMBER) {
                         logger.info("更新用户房间id完成 " + userDto.getUsername());

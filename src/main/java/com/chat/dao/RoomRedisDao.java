@@ -7,6 +7,7 @@ import com.chat.model.QueryControlData;
 import com.chat.model.RoomDto;
 import com.chat.model.UserDto;
 import com.chat.utils.GsonUtils;
+import com.chat.utils.RedisClientUtil;
 import com.chat.verticle.RedisVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.redis.client.RedisAPI;
@@ -22,7 +23,7 @@ public class RoomRedisDao {
 
     private static final Logger logger = LoggerFactory.getLogger(RedisVerticle.class);
 
-    private final RedisAPI redisAPI;
+    private RedisAPI redisAPI;
 
     private final String RoomDtoList = "RoomDtoList";
 
@@ -30,8 +31,13 @@ public class RoomRedisDao {
 
     private final String RoomIdKey = "RoomIdKey";
 
+    @Deprecated
     public RoomRedisDao(RedisAPI redisAPI) {
         this.redisAPI = redisAPI;
+        this.baseOperate();
+    }
+
+    public RoomRedisDao() {
         this.baseOperate();
     }
 
@@ -40,7 +46,7 @@ public class RoomRedisDao {
 
         bus.<Integer>consumer(RoomHandler.REDIS_ROOM_ID_INIT).handler(msg ->{
             //默认增加 1,其实可以先申请若干个,缓存起来减少申请次数,暂时不做修改
-            redisAPI.incrby(RoomIdKey, "1", res -> {
+            RedisClientUtil.getRedisAPI().incrby(RoomIdKey, "1", res -> {
                 try {
                     if (res.succeeded() && res.result() != null && res.result().type() == ResponseType.NUMBER) {
                         Integer userId = res.result().toInteger();
@@ -60,7 +66,7 @@ public class RoomRedisDao {
         bus.<RoomDto>consumer(RoomHandler.REDIS_ROOM_ID_NAME_SAVE).handler(msg ->{
             RoomDto roomDto = msg.body();
             List<String> args = Stream.of(IdRoomMap, String.valueOf(roomDto.getId()), roomDto.getName()).collect(Collectors.toList());
-            redisAPI.hset(args, res -> {
+            RedisClientUtil.getRedisAPI().hset(args, res -> {
                 try {
                     if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.NUMBER) {
                         if(res.result().toInteger() == 1){
@@ -81,7 +87,7 @@ public class RoomRedisDao {
 
         //查询单个房间信息
         bus.<String>consumer(RoomHandler.REDIS_ROOM_ID_NAME_QUERY).handler(msg ->{
-            redisAPI.hget(IdRoomMap, msg.body(), res -> {
+            RedisClientUtil.getRedisAPI().hget(IdRoomMap, msg.body(), res -> {
                 try {
                     if (res.succeeded() && res.result() != null && res.result().type() == ResponseType.BULK) {
                         String roomname = res.result().toString();
@@ -101,7 +107,7 @@ public class RoomRedisDao {
         bus.<RoomDto>consumer(RoomHandler.REDIS_ROOM_DTO_LIST_SAVE).handler(msg ->{
             RoomDto roomDto = msg.body();
             List<String> args = Stream.of(RoomDtoList, GsonUtils.toJsonString(roomDto)).collect(Collectors.toList());
-            redisAPI.rpush(args, res -> {
+            RedisClientUtil.getRedisAPI().rpush(args, res -> {
                 try {
                     if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.NUMBER) {
                         logger.info("保存房间信息完成 " + roomDto.getId());
@@ -119,7 +125,7 @@ public class RoomRedisDao {
         //查询房间 dtoList 信息
         bus.<QueryControlData>consumer(RoomHandler.REDIS_ROOM_DTO_LIST_QUERY).handler(msg ->{
             QueryControlData controlData = msg.body();
-            redisAPI.lrange(RoomDtoList,String.valueOf(controlData.getPageIndex()),
+            RedisClientUtil.getRedisAPI().lrange(RoomDtoList,String.valueOf(controlData.getPageIndex()),
                     String.valueOf(controlData.getPageSize()), res -> {
                 try {
                     if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.MULTI) {
@@ -139,7 +145,7 @@ public class RoomRedisDao {
         //保存 roomid -> username 添加成员
         bus.<List<String>>consumer(RoomHandler.REDIS_ROOM_ID_USER_NAME_SADD).handler(msg ->{
             List<String> saveInfo = msg.body();
-            redisAPI.sadd(saveInfo, res -> {
+            RedisClientUtil.getRedisAPI().sadd(saveInfo, res -> {
                         try {
                             if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.NUMBER) {
                                 logger.info("房间保存用户信息完成 value={};" + GsonUtils.toJsonString(saveInfo));
@@ -156,7 +162,7 @@ public class RoomRedisDao {
         //保存 roomid -> username 移除成员
         bus.<List<String>>consumer(RoomHandler.REDIS_ROOM_ID_USER_NAME_SREM).handler(msg ->{
             List<String> saveInfo = msg.body();
-            redisAPI.srem(saveInfo, res -> {
+            RedisClientUtil.getRedisAPI().srem(saveInfo, res -> {
                 try {
                     if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.NUMBER) {
                         logger.info("房间移除用户信息完成 value={};" + GsonUtils.toJsonString(saveInfo));
@@ -173,7 +179,7 @@ public class RoomRedisDao {
         //保存 roomid -> username 查询所有成员 TODO 调试过程中 调整返回结果
         bus.<String>consumer(RoomHandler.REDIS_ROOM_ID_USER_NAME_SMEMBERS).handler(msg ->{
             String roomid = msg.body();
-            redisAPI.smembers(roomid, res -> {
+            RedisClientUtil.getRedisAPI().smembers(roomid, res -> {
                 try {
                     if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.MULTI) {
                         logger.info("房间查询用户信息完成 value={};" + roomid);
