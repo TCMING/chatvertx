@@ -89,9 +89,10 @@ public class MessageHandler {
                     return ;
                 }
                 //与其他key区别开
-                String startIndex = String.valueOf( (-1-controlData.getPageIndex()) * controlData.getPageSize());
-                List<String> saveMessage = Stream.of(userDto.getRoomId() + MESSAGE, startIndex,
-                        String.valueOf(controlData.getPageSize() - 1)).collect(Collectors.toList());
+                int startIndex = (-1-controlData.getPageIndex()) * controlData.getPageSize();
+                int endIndex =  startIndex + controlData.getPageSize() - 1;
+                List<String> saveMessage = Stream.of(userDto.getRoomId() + MESSAGE, String.valueOf(startIndex),
+                        String.valueOf(endIndex)).collect(Collectors.toList());
                 bus.<String>request(MessageHandler.REDIS_MESSAGE_RETRIEVE,saveMessage,msgReply ->{
                     if (msgReply.succeeded() && msgReply.result() != null && msgReply.result().body() != null){
                         out(context,msgReply.result().body());
