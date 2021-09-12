@@ -197,11 +197,12 @@ public class RoomHandler {
                         if(memberReply.succeeded() && memberReply.result() != null){
                             String memberStr = memberReply.result().body();
                             List<String> memberList = GsonUtils.jsonToList(memberStr,String.class);
-                            List<UserRO> userList = new LinkedList<>();
+                            /*List<UserRO> userList = new LinkedList<>();
                             memberList.forEach(str ->{
                                 userList.add(new UserRO(str));
                             });
-                            out(context,GsonUtils.toJsonString(userList));
+                            out(context,GsonUtils.toJsonString(userList));*/
+                            out(context,GsonUtils.toJsonString(memberList));
                             return ;
                         }
                         sendError(context,"Invalid Room ID");
@@ -290,7 +291,7 @@ public class RoomHandler {
     public void queryRoomList(RoutingContext context) {
         String json = context.getBody().toString();
         QueryControlData roomControl = GsonUtils.jsonToBean(json,QueryControlData.class);
-        if(roomControl.getPageIndex() < 0 || roomControl.getPageSize() < 0){
+        if(roomControl.getPageIndex() < 0 || roomControl.getPageSize() <= 0){
             context.fail(400);
             return ;
         }
