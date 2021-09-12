@@ -13,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -74,27 +73,52 @@ public class RoomHandler {
             bus.<UserDto>request(UserHandler.REDIS_USER_QUERY,username,userReply ->{
                 if(userReply.succeeded() && userReply.result() != null && userReply.result().body() != null){
                     //2.校验房间是否存在
+                    UserDto userDto = userReply.result().body();
                     bus.<String>request(RoomHandler.REDIS_ROOM_ID_NAME_QUERY,roomid,roomReply ->{
                         if(roomReply.succeeded() && roomReply.result() != null && roomReply.result().body() != null){
-                            //3.保存用户到 roomid -> username集合中
-                            List<String> saveInfo = Stream.of(roomid,username).collect(Collectors.toList());
-                            bus.<Boolean>request(RoomHandler.REDIS_ROOM_ID_USER_NAME_SADD,saveInfo,setReply ->{
-                                if(setReply.succeeded() && setReply.result() != null && setReply.result().body()){
-                                    //4.更新用户房间信息
-                                    UserDto userDto = new UserDto();
-                                    userDto.setUsername(username);
-                                    userDto.setRoomId(Integer.valueOf(roomid));
-                                    bus.<Boolean>request(UserHandler.REDIS_USER_ROOM_ID_UPDATE,userDto,updateReply ->{
-                                        if(updateReply.succeeded() && updateReply.result() != null && updateReply.result().body()){
-                                            out(context,"Enter the Room");
-                                            return ;
-                                        }
+                            //3.离开原来的房间
+                            if(userDto.getRoomId() > 0){
+                                List<String> saveInfo = Stream.of(String.valueOf(userDto.getRoomId()),username).collect(Collectors.toList());
+                                bus.<Boolean>request(RoomHandler.REDIS_ROOM_ID_USER_NAME_SREM,saveInfo,remReply ->{
+                                    if(remReply.succeeded() && remReply.result() != null && remReply.result().body()){
+                                        //4.保存用户到 roomid -> username集合中
+                                        List<String> newSaveInfo = Stream.of(roomid,username).collect(Collectors.toList());
+                                        bus.<Boolean>request(RoomHandler.REDIS_ROOM_ID_USER_NAME_SADD,newSaveInfo,setReply ->{
+                                            if(setReply.succeeded() && setReply.result() != null && setReply.result().body()){
+                                                //5.更新用户房间信息
+                                                userDto.setRoomId(Integer.valueOf(roomid));
+                                                bus.<Boolean>request(UserHandler.REDIS_USER_ROOM_ID_UPDATE,userDto,updateReply ->{
+                                                    if(updateReply.succeeded() && updateReply.result() != null && updateReply.result().body()){
+                                                        out(context,"Enter the Room");
+                                                        return ;
+                                                    }
+                                                    sendError(context,"save roomid username error");
+                                                });
+                                            }else{
+                                                sendError(context,"save roomid username error");
+                                            }
+                                        });
+                                    }
+                                });
+                            }else{
+                                //4.保存用户到 roomid -> username集合中
+                                List<String> newSaveInfo = Stream.of(roomid,username).collect(Collectors.toList());
+                                bus.<Boolean>request(RoomHandler.REDIS_ROOM_ID_USER_NAME_SADD,newSaveInfo,setReply ->{
+                                    if(setReply.succeeded() && setReply.result() != null && setReply.result().body()){
+                                        //5.更新用户房间信息
+                                        userDto.setRoomId(Integer.valueOf(roomid));
+                                        bus.<Boolean>request(UserHandler.REDIS_USER_ROOM_ID_UPDATE,userDto,updateReply ->{
+                                            if(updateReply.succeeded() && updateReply.result() != null && updateReply.result().body()){
+                                                out(context,"Enter the Room");
+                                                return ;
+                                            }
+                                            sendError(context,"save roomid username error");
+                                        });
+                                    }else{
                                         sendError(context,"save roomid username error");
-                                    });
-                                }else{
-                                    sendError(context,"save roomid username error");
-                                }
-                            });
+                                    }
+                                });
+                            }
                         }else{
                             sendError(context,"Invalid roomid");
                         }
@@ -128,10 +152,10 @@ public class RoomHandler {
                     }
                     bus.<String>request(RoomHandler.REDIS_ROOM_ID_NAME_QUERY,String.valueOf(curUserDto.getRoomId()),roomReply ->{
                         if(roomReply.succeeded() && roomReply.result() != null && roomReply.result().body() != null){
-                            //3.保存用户到 roomid -> username集合中
+                            //3.删除用户到 roomid -> username集合中
                             List<String> saveInfo = Stream.of(String.valueOf(curUserDto.getRoomId()),username).collect(Collectors.toList());
-                            bus.<Boolean>request(RoomHandler.REDIS_ROOM_ID_USER_NAME_SREM,saveInfo,setReply ->{
-                                if(setReply.succeeded() && setReply.result() != null && setReply.result().body()){
+                            bus.<Boolean>request(RoomHandler.REDIS_ROOM_ID_USER_NAME_SREM,saveInfo,remReply ->{
+                                if(remReply.succeeded() && remReply.result() != null && remReply.result().body()){
                                     //4.更新用户房间信息
                                     curUserDto.setRoomId(0);
                                     bus.<Boolean>request(UserHandler.REDIS_USER_ROOM_ID_UPDATE,curUserDto,updateReply ->{
@@ -266,7 +290,10 @@ public class RoomHandler {
     public void queryRoomList(RoutingContext context) {
         String json = context.getBody().toString();
         QueryControlData roomControl = GsonUtils.jsonToBean(json,QueryControlData.class);
-
+        if(roomControl.getPageIndex() < 0){
+            context.fail(400);
+            return ;
+        }
         EventBus bus = Main.vertx.eventBus();
         bus.<String>request(REDIS_ROOM_DTO_LIST_QUERY, roomControl, queryReply ->{
             if(queryReply.succeeded() && queryReply.result() != null ){

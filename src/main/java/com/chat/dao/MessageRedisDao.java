@@ -25,11 +25,7 @@ public class MessageRedisDao {
 
     private  RedisAPI redisAPI;
 
-    private final String RoomDtoList = "RoomDtoList";
-
-    private final String IdRoomMap = "IdRoomMap";
-
-    private final String RoomIdKey = "RoomIdKey";
+    private final static String MESSAGE_SET = "messageSet";
 
     @Deprecated
     public MessageRedisDao(RedisAPI redisAPI) {
@@ -82,6 +78,27 @@ public class MessageRedisDao {
                 }
             });
         });
+
+        // 保存
+        bus.<String>consumer(MessageHandler.REDIS_MESSAGE_ID_SADD).handler(msg ->{
+            String messageId = msg.body();
+            List<String> saddInfo = Stream.of(MESSAGE_SET,messageId).collect(Collectors.toList());
+            RedisClientUtil.getRedisAPI().sadd(saddInfo,res -> {
+                try {
+                    if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.NUMBER) {
+                        int resNum = res.result().toInteger();
+                        logger.info("房间保存用户信息完成,res={}",resNum);
+                        msg.reply(resNum == 1);
+                    } else {
+                        logger.info("房间保存用户信息失败 value={}",GsonUtils.toJsonString(saddInfo));
+                        msg.reply(false);
+                    }
+                } catch (Exception e) {
+                    msg.fail(400, e.getMessage());
+                }
+            });
+        });
+
 
     }
 

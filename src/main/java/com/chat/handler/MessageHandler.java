@@ -25,6 +25,10 @@ public class MessageHandler {
 
     public static final String REDIS_MESSAGE_SEND = "redis.user.send";
 
+    public static final String REDIS_MESSAGE_ID_SADD = "redis.user.id.sadd";
+
+    public static final String REDIS_MESSAGE_ID_SGET = "redis.user.id.sget";
+
     public static final String REDIS_MESSAGE_RETRIEVE = "redis.message.retrieve";
 
     public static final String MESSAGE = "message";
@@ -46,16 +50,23 @@ public class MessageHandler {
                         sendError(context,"current user not enter room");
                         return ;
                     }
-                    //与其他key区别开
-                    List<String> saveMessage = Stream.of(userDto.getRoomId() + MESSAGE,GsonUtils.toJsonString(message))
-                            .collect(Collectors.toList());
-                    bus.<Boolean>request(MessageHandler.REDIS_MESSAGE_SEND,saveMessage,msgReply ->{
-                        if (msgReply.succeeded() && msgReply.result() != null && msgReply.result().body()){
-                            out(context,"successful operation");
+                    bus.<Boolean>request(MessageHandler.REDIS_MESSAGE_ID_SADD,message.getId(),saddReply -> {
+                        if (saddReply.succeeded() && saddReply.result() != null && saddReply.result().body()){
+                            //与其他key区别开
+                            List<String> saveMessage = Stream.of(userDto.getRoomId() + MESSAGE,GsonUtils.toJsonString(message))
+                                    .collect(Collectors.toList());
+                            bus.<Boolean>request(MessageHandler.REDIS_MESSAGE_SEND,saveMessage,msgReply ->{
+                                if (msgReply.succeeded() && msgReply.result() != null && msgReply.result().body()){
+                                    out(context,"successful operation");
+                                }else{
+                                    sendError(context,"Invalid input");
+                                }
+                            });
                         }else{
                             sendError(context,"Invalid input");
                         }
                     });
+
                 } else {
                     sendError(context, "Invalid input");
                 }
@@ -77,7 +88,10 @@ public class MessageHandler {
 
         String json = context.getBody().toString();
         QueryControlData controlData = GsonUtils.jsonToBean(json,QueryControlData.class);
-
+        if(controlData.getPageIndex() >= 0){
+            context.fail(400);
+            return ;
+        }
         //获取当前用户username
         String username = JwtUtils.parseUsername(context.request().getHeader("Authorization"));
         EventBus bus = Main.vertx.eventBus();

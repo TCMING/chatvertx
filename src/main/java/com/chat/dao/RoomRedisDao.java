@@ -125,7 +125,7 @@ public class RoomRedisDao {
         //查询房间 dtoList 信息
         bus.<QueryControlData>consumer(RoomHandler.REDIS_ROOM_DTO_LIST_QUERY).handler(msg ->{
             QueryControlData controlData = msg.body();
-            int startIndex = (-1-controlData.getPageIndex()) * controlData.getPageSize();
+            int startIndex = (controlData.getPageIndex()) * controlData.getPageSize();
             int pageSize = controlData.getPageSize() + startIndex - 1;
 
             RedisClientUtil.getRedisAPI().lrange(RoomDtoList,String.valueOf(startIndex), String.valueOf(pageSize), res -> {
