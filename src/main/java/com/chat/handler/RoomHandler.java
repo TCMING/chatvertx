@@ -290,7 +290,7 @@ public class RoomHandler {
     public void queryRoomList(RoutingContext context) {
         String json = context.getBody().toString();
         QueryControlData roomControl = GsonUtils.jsonToBean(json,QueryControlData.class);
-        if(roomControl.getPageIndex() < 0){
+        if(roomControl.getPageIndex() < 0 || roomControl.getPageSize() < 0){
             context.fail(400);
             return ;
         }
