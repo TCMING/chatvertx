@@ -125,8 +125,10 @@ public class RoomRedisDao {
         //查询房间 dtoList 信息
         bus.<QueryControlData>consumer(RoomHandler.REDIS_ROOM_DTO_LIST_QUERY).handler(msg ->{
             QueryControlData controlData = msg.body();
-            RedisClientUtil.getRedisAPI().lrange(RoomDtoList,String.valueOf(controlData.getPageIndex()),
-                    String.valueOf(controlData.getPageSize()), res -> {
+            String startIndex = String.valueOf( (-1-controlData.getPageIndex()) * controlData.getPageSize());
+            String pageSize = String.valueOf(controlData.getPageSize() - 1);
+
+            RedisClientUtil.getRedisAPI().lrange(RoomDtoList,startIndex, pageSize, res -> {
                 try {
                     if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.MULTI) {
                         logger.info("查询房间列表完成 value={};" + res.result().toString());

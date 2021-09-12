@@ -6,9 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
-import java.io.*;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.*;
 
 public class RedisClientUtil {
@@ -24,8 +21,6 @@ public class RedisClientUtil {
     private static String lock_key = "redis_lock";
 
     private static String isServerInited = "isServerInited";
-
-    static Properties prop = new Properties();
 
     public static void init(RedisAPI lockAPI , String setValue , String json){
 
