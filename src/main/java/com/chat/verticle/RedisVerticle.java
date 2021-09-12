@@ -33,10 +33,16 @@ public class RedisVerticle extends AbstractVerticle {
     private void updateCluster(){
         MessageConsumer<String> consumner =  vertx.eventBus().consumer(UPDATE_CLUSTER_ADD);
         consumner.handler( msg -> {
-            String json = msg.body();
-            if(RedisClientUtil.initRedisServer(json)){
-                msg.reply(true);
+            try {
+                String json = msg.body();
+                if(RedisClientUtil.initRedisServer(json)){
+                    msg.reply(true);
+                    return ;
+                }
+            }catch (Exception e){
+                logger.error("初始化redisServer失败",e);
             }
+            msg.reply(false);
         } );
     }
 
