@@ -127,7 +127,7 @@
         "en": "Image ID",
         "zh-cn": "镜像ID"
       },
-      "Default": "m-2ze52prbql6hkke1p0lx"
+      "Default": "m-2ze5g35xqc36yts52gcn"
     },
     "ecs_system_disk_category": {
       "Type": "String",

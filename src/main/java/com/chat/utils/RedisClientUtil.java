@@ -280,8 +280,8 @@ public class RedisClientUtil {
             }*/
 
             // TODO: 2021/9/11 采用jedis访问redis
-//            Jedis jedis = new Jedis("127.0.0.1" , 6379);
-            Jedis jedis = new Jedis("101.200.73.121" , 6379);
+            Jedis jedis = new Jedis("127.0.0.1" , 6379);
+//            Jedis jedis = new Jedis("101.200.73.121" , 6379);
             String json = jedis.get("ips");
             serverIpsStatic = convertIp(json);
         }
