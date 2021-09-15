@@ -88,7 +88,7 @@ public class MessageHandler {
 
         String json = context.getBody().toString();
         QueryControlData controlData = GsonUtils.jsonToBean(json,QueryControlData.class);
-        if(controlData.getPageIndex() >= 0 || controlData.getPageSize() < 0){
+        if(controlData.getPageIndex() >= 0 || controlData.getPageSize() <= 0){
             context.fail(400);
             return ;
         }
