@@ -42,20 +42,22 @@ public class MessageRedisDao {
 
         //保存房间消息 key(roomid+message) value(message)
         bus.<List<String>>consumer(MessageHandler.REDIS_MESSAGE_SEND).handler(msg ->{
-            List<String> saveInfo = msg.body();
-            RedisClientUtil.getRedisAPI().lpush(saveInfo, res -> {
-                try {
-                    if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.NUMBER) {
+            try {
+                List<String> saveInfo = msg.body();
+                RedisClientUtil.getRedisAPI().lpush(saveInfo, res -> {
+
+                    if (res.succeeded() && res.result() != null && res.result().type() == ResponseType.NUMBER) {
                         logger.info("保存房间消息列表完成 " + GsonUtils.toJsonString(saveInfo));
                         msg.reply(true);
                     } else {
                         logger.warn("保存房间消息列表失败 " + GsonUtils.toJsonString(saveInfo));
                         msg.reply(false);
                     }
-                } catch (Exception e) {
-                    msg.fail(400, e.getMessage());
-                }
-            });
+
+                });
+            } catch (Exception e) {
+                msg.fail(400, e.getMessage());
+            }
         });
 
         //查询房间消息 key(roomid+message) value(message)
@@ -81,22 +83,24 @@ public class MessageRedisDao {
 
         // 保存
         bus.<String>consumer(MessageHandler.REDIS_MESSAGE_ID_SADD).handler(msg ->{
-            String messageId = msg.body();
-            List<String> saddInfo = Stream.of(MESSAGE_SET,messageId).collect(Collectors.toList());
-            RedisClientUtil.getRedisAPI().sadd(saddInfo,res -> {
-                try {
-                    if (res.succeeded() && res.result() != null &&  res.result().type() == ResponseType.NUMBER) {
+            try {
+                String messageId = msg.body();
+                List<String> saddInfo = Stream.of(MESSAGE_SET, messageId).collect(Collectors.toList());
+                RedisClientUtil.getRedisAPI().sadd(saddInfo, res -> {
+
+                    if (res.succeeded() && res.result() != null && res.result().type() == ResponseType.NUMBER) {
                         int resNum = res.result().toInteger();
-                        logger.info("房间保存用户信息完成,res={}",resNum);
+                        logger.info("房间保存用户信息完成,res={}", resNum);
                         msg.reply(resNum == 1);
                     } else {
-                        logger.info("房间保存用户信息失败 value={}",GsonUtils.toJsonString(saddInfo));
+                        logger.info("房间保存用户信息失败 value={}", GsonUtils.toJsonString(saddInfo));
                         msg.reply(false);
                     }
-                } catch (Exception e) {
-                    msg.fail(400, e.getMessage());
-                }
-            });
+
+                });
+            } catch (Exception e) {
+                msg.fail(400, e.getMessage());
+            }
         });
 
 

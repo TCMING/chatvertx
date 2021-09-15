@@ -7,7 +7,6 @@ import com.chat.utils.BizCheckUtils;
 import com.chat.utils.GsonUtils;
 import com.chat.utils.RedisClientUtil;
 import com.chat.verticle.RedisVerticle;
-import com.google.gson.JsonObject;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.ResponseType;
@@ -42,22 +41,22 @@ public class UserRedisDao {
 
         //查询单个用户
         bus.<String>consumer(UserHandler.REDIS_USER_QUERY).handler(msg ->{
-            String username = msg.body();
-            RedisClientUtil.getRedisAPI().hgetall(username, res -> {
-                try {
-                    if (res.succeeded() && res.result() != null && res.result().size()>0 && res.result().type() == ResponseType.MULTI) {
-                        UserDto userDto = GsonUtils.jsonToBean(res.result().toString(),UserDto.class);
-                        if(userDto.getUsername() != null){
+            try {
+                String username = msg.body();
+                RedisClientUtil.getRedisAPI().hgetall(username, res -> {
+                    if (res.succeeded() && res.result() != null && res.result().size() > 0 && res.result().type() == ResponseType.MULTI) {
+                        UserDto userDto = GsonUtils.jsonToBean(res.result().toString(), UserDto.class);
+                        if (userDto.getUsername() != null) {
                             msg.reply(userDto);
                             return;
                         }
                     }
                     msg.reply(null);
-                } catch (Exception e) {
-                    logger.error("--",e);
-                    msg.fail(400, e.getMessage());
-                }
-            });
+                });
+            } catch (Exception e) {
+                logger.error("--", e);
+                msg.fail(400, e.getMessage());
+            }
         });
 
         //保存用户 map类型 key(username) value(UserDto各字段)
