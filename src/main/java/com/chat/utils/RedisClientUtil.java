@@ -314,32 +314,38 @@ public class RedisClientUtil {
         BizCheckUtils.checkNull(serverIpsStatic,"serverIpsStatic初始化失败");
         Promise<RedisConnection> promise = Promise.promise();
         //初始化RedisClient
-        Redis.createClient(
-                Main.vertx,
-                new RedisOptions()
-                        .setType(RedisClientType.SENTINEL)
-//                        .addConnectionString("redis://127.0.0.1:26379")
-//                        .addConnectionString("redis://127.0.0.1:26380")
-//                        .addConnectionString("redis://127.0.0.1:26381")
-                        .addConnectionString("redis://" + serverIpsStatic[0] + ":26379")
-                        .addConnectionString("redis://" + serverIpsStatic[1] + ":26379")
-                        .addConnectionString("redis://" + serverIpsStatic[2] + ":26379")
-                        .setMasterName("mymaster")
-                        .setRole(RedisRole.MASTER)
-                        .setPoolCleanerInterval(-1)
-                        .setPoolRecycleTimeout(120000)
-                        .setMaxPoolSize(8)
-                        .setMaxWaitingHandlers(32)).connect().onSuccess(
-                conn -> {
-                    // make sure the client is reconnected on error
-                    conn.exceptionHandler(e -> {
-                        // attempt to reconnect,
-                        // if there is an unrecoverable error
-                        attemptReconnect(0);
-                    });
-                    // allow further processing
-                    promise.complete(conn);
-                });
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Redis.createClient(
+                        Main.vertx,
+                        new RedisOptions()
+                                .setType(RedisClientType.SENTINEL)
+        //                      .addConnectionString("redis://127.0.0.1:26379")
+        //                      .addConnectionString("redis://127.0.0.1:26380")
+        //                      .addConnectionString("redis://127.0.0.1:26381")
+                                .addConnectionString("redis://" + serverIpsStatic[0] + ":26379")
+                                .addConnectionString("redis://" + serverIpsStatic[1] + ":26379")
+                                .addConnectionString("redis://" + serverIpsStatic[2] + ":26379")
+                                .setMasterName("mymaster")
+                                .setRole(RedisRole.MASTER)
+                                .setPoolCleanerInterval(-1)
+                                .setPoolRecycleTimeout(120000)
+                                .setMaxPoolSize(8)
+                                .setMaxWaitingHandlers(32)).connect().onSuccess(
+                        conn -> {
+                            // make sure the client is reconnected on error
+                            conn.exceptionHandler(e -> {
+                                // attempt to reconnect,
+                                // if there is an unrecoverable error
+                                attemptReconnect(0);
+                            });
+                            // allow further processing
+                            promise.complete(conn);
+                        });
+            }
+        });
+        thread.start();
         return promise.future();
     }
 
@@ -366,6 +372,12 @@ public class RedisClientUtil {
             synchronized (RedisClientUtil.class){
                 if(redisAPI==null){
                     Future<RedisConnection> connectionFuture = initRedisClient();
+                    while(!connectionFuture.isComplete()){
+                        try {
+                            Thread.sleep(10);
+                        }catch (Exception e){
+                        }
+                    }
                     redisAPI = RedisAPI.api(connectionFuture.result());
                 }
             }
