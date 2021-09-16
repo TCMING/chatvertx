@@ -1,6 +1,8 @@
 package com.chat.utils;
 
 import com.chat.Main;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.redis.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,8 +14,6 @@ public class RedisClientUtil {
 
     private static Logger logger = LoggerFactory.getLogger(RedisClientUtil.class);
 
-    private static Redis redisClient;
-
     private static RedisAPI redisAPI;
 
     private static String[] serverIpsStatic;
@@ -21,6 +21,8 @@ public class RedisClientUtil {
     private static String lock_key = "redis_lock";
 
     private static String isServerInited = "isServerInited";
+
+    private static final int MAX_RECONNECT_RETRIES = 16;
 
     public static void init(RedisAPI lockAPI , String setValue , String json){
 
@@ -298,19 +300,9 @@ public class RedisClientUtil {
      * 初始化高可用客户端
      * @return
      */
-    public static Redis initRedisClient(){
+    public static Future<RedisConnection> initRedisClient(){
         //重新加载serverIpsStatic
         if (serverIpsStatic == null) {
-
-            /*File file = new File("redis.properties");
-            try {
-                prop.load(new FileInputStream(file));
-                String json = prop.getProperty("ips");
-                serverIpsStatic = convertIp(json);
-            } catch (IOException e) {
-                logger.error("--error", e);
-            }*/
-
             // TODO: 2021/9/11 采用jedis访问redis
 //            Jedis jedis = new Jedis("127.0.0.1" , 6379);
             Jedis jedis = new Jedis("182.92.125.135" , 6379);
@@ -320,25 +312,51 @@ public class RedisClientUtil {
 
         }
         BizCheckUtils.checkNull(serverIpsStatic,"serverIpsStatic初始化失败");
+        Promise<RedisConnection> promise = Promise.promise();
         //初始化RedisClient
-        redisClient = Redis.createClient(
+        Redis.createClient(
                 Main.vertx,
                 new RedisOptions()
                         .setType(RedisClientType.SENTINEL)
 //                        .addConnectionString("redis://127.0.0.1:26379")
 //                        .addConnectionString("redis://127.0.0.1:26380")
 //                        .addConnectionString("redis://127.0.0.1:26381")
-                            .addConnectionString("redis://"+serverIpsStatic[0]+":26379")
-                            .addConnectionString("redis://"+serverIpsStatic[1]+":26379")
-                            .addConnectionString("redis://"+serverIpsStatic[2]+":26379")
+                        .addConnectionString("redis://" + serverIpsStatic[0] + ":26379")
+                        .addConnectionString("redis://" + serverIpsStatic[1] + ":26379")
+                        .addConnectionString("redis://" + serverIpsStatic[2] + ":26379")
                         .setMasterName("mymaster")
                         .setRole(RedisRole.MASTER)
                         .setPoolCleanerInterval(-1)
                         .setPoolRecycleTimeout(120000)
                         .setMaxPoolSize(8)
-                        .setMaxWaitingHandlers(32));
+                        .setMaxWaitingHandlers(32)).connect().onSuccess(
+                conn -> {
+                    // make sure the client is reconnected on error
+                    conn.exceptionHandler(e -> {
+                        // attempt to reconnect,
+                        // if there is an unrecoverable error
+                        attemptReconnect(0);
+                    });
+                    // allow further processing
+                    promise.complete(conn);
+                });
+        return promise.future();
+    }
 
-        return redisClient;
+    /**
+     * Attempt to reconnect up to MAX_RECONNECT_RETRIES
+     */
+    private static void attemptReconnect(int retry) {
+        if (retry > MAX_RECONNECT_RETRIES) {
+            // we should stop now, as there's nothing we can do.
+        } else {
+            // retry with backoff up to 10240 ms
+            long backoff = (long) (Math.pow(2, Math.min(retry, 10)) * 10);
+
+            Main.vertx.setTimer(backoff, timer -> {
+                initRedisClient().onFailure(t -> attemptReconnect(retry + 1));
+            });
+        }
     }
 
     public static RedisAPI getRedisAPI(){
@@ -347,8 +365,8 @@ public class RedisClientUtil {
         }else{
             synchronized (RedisClientUtil.class){
                 if(redisAPI==null){
-                    redisClient = initRedisClient();
-                    redisAPI = RedisAPI.api(redisClient);
+                    Future<RedisConnection> connectionFuture = initRedisClient();
+                    redisAPI = RedisAPI.api(connectionFuture.result());
                 }
             }
             return redisAPI;
