@@ -162,13 +162,45 @@ public class RedisClientUtil {
                                                                                                                                     delArgs.add(lock_key);
                                                                                                                                     delArgs.add(setValue);
                                                                                                                                     lockAPI.eval(delArgs).onSuccess(value2->{
-                                                                                                                                        logger.info("---删除锁成功，开始关闭连接");
-                                                                                                                                        sentiClient3.close();
-                                                                                                                                        sentiClient2.close();
-                                                                                                                                        sentiClient1.close();
-                                                                                                                                        slaveClient2.close();
-                                                                                                                                        slaveClient1.close();
-                                                                                                                                        lockAPI.close();
+
+                                                                                                                                        logger.info("---删除锁成功，配置哨兵主观下线timeout");
+
+                                                                                                                                        conn3.send(Request.cmd(Command.SENTINEL).arg("set")
+                                                                                                                                                .arg("mymaster")
+                                                                                                                                                .arg("down-after-milliseconds")
+                                                                                                                                                .arg("1000"))
+                                                                                                                                                .onFailure(f1->{
+                                                                                                                                                    logger.error("--"+f1.getCause());
+                                                                                                                                                })
+                                                                                                                                                .onSuccess(timeoutInfo1->{
+                                                                                                                                                    System.out.println("timeoutInfo1 set");
+
+                                                                                                                                                    conn4.send(Request.cmd(Command.SENTINEL).arg("set")
+                                                                                                                                                            .arg("mymaster")
+                                                                                                                                                            .arg("down-after-milliseconds")
+                                                                                                                                                            .arg("1000"))
+                                                                                                                                                            .onSuccess(timeoutInfo2->{
+                                                                                                                                                                System.out.println("timeoutInfo2 set");
+
+                                                                                                                                                                conn5.send(Request.cmd(Command.SENTINEL).arg("set")
+                                                                                                                                                                        .arg("mymaster")
+                                                                                                                                                                        .arg("down-after-milliseconds")
+                                                                                                                                                                        .arg("1000"))
+                                                                                                                                                                        .onSuccess(timeoutInfo3->{
+                                                                                                                                                                            System.out.println("timeoutInfo3 set");
+
+                                                                                                                                                                            logger.info("---开始关闭连接");
+                                                                                                                                                                            sentiClient3.close();
+                                                                                                                                                                            sentiClient2.close();
+                                                                                                                                                                            sentiClient1.close();
+                                                                                                                                                                            slaveClient2.close();
+                                                                                                                                                                            slaveClient1.close();
+                                                                                                                                                                            lockAPI.close();
+                                                                                                                                                                        });
+                                                                                                                                                            });
+                                                                                                                                                });
+
+
                                                                                                                                     });
                                                                                                                                 });
                                                                                                                             });
@@ -280,10 +312,12 @@ public class RedisClientUtil {
             }*/
 
             // TODO: 2021/9/11 采用jedis访问redis
-            Jedis jedis = new Jedis("127.0.0.1" , 6379);
-//            Jedis jedis = new Jedis("101.200.73.121" , 6379);
+//            Jedis jedis = new Jedis("127.0.0.1" , 6379);
+            Jedis jedis = new Jedis("182.92.125.135" , 6379);
             String json = jedis.get("ips");
+            jedis.close();
             serverIpsStatic = convertIp(json);
+
         }
         BizCheckUtils.checkNull(serverIpsStatic,"serverIpsStatic初始化失败");
         //初始化RedisClient
@@ -302,7 +336,7 @@ public class RedisClientUtil {
                         .setPoolCleanerInterval(-1)
                         .setPoolRecycleTimeout(120000)
                         .setMaxPoolSize(8)
-                        .setMaxWaitingHandlers(8));
+                        .setMaxWaitingHandlers(32));
 
         return redisClient;
     }

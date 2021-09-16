@@ -16,6 +16,8 @@ import io.vertx.redis.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+
 public class ChatVerticle extends AbstractVerticle {
 
     private static final Logger logger = LoggerFactory.getLogger(UserHandler.class);
@@ -83,8 +85,12 @@ public class ChatVerticle extends AbstractVerticle {
 
     private void test(RoutingContext routingContext){
         RedisAPI api = RedisClientUtil.getRedisAPI();
-        api.get("ips").onSuccess( ips -> {
-            out(routingContext , ips.toString());
+//        api.get("ips").onSuccess( ips -> {
+//            out(routingContext , ips.toString());
+//        });
+
+        api.set(Arrays.asList("test","1")).onSuccess(test->{
+            out(routingContext , "1");
         });
     }
 
