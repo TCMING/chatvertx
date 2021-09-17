@@ -44,12 +44,16 @@ public class UserRedisDao {
             try {
                 String username = msg.body();
                 RedisClientUtil.getRedisAPI().hgetall(username, res -> {
-                    if (res.succeeded() && res.result() != null && res.result().size() > 0 && res.result().type() == ResponseType.MULTI) {
-                        UserDto userDto = GsonUtils.jsonToBean(res.result().toString(), UserDto.class);
-                        if (userDto.getUsername() != null) {
-                            msg.reply(userDto);
-                            return;
+                    try {
+                        if (res.succeeded() && res.result() != null && res.result().size() > 0 && res.result().type() == ResponseType.MULTI) {
+                            UserDto userDto = GsonUtils.jsonToBean(res.result().toString(), UserDto.class);
+                            if (userDto.getUsername() != null) {
+                                msg.reply(userDto);
+                                return;
+                            }
                         }
+                    }catch (Exception e){
+                        logger.error("用户查询异常",e);
                     }
                     msg.reply(null);
                 });

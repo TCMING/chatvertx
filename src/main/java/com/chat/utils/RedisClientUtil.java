@@ -1,8 +1,8 @@
 package com.chat.utils;
 
 import com.chat.Main;
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.redis.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +15,8 @@ public class RedisClientUtil {
     private static Logger logger = LoggerFactory.getLogger(RedisClientUtil.class);
 
     private static RedisAPI redisAPI;
+
+    private static RedisConnection connection;
 
     private static String[] serverIpsStatic;
 
@@ -300,25 +302,22 @@ public class RedisClientUtil {
      * 初始化高可用客户端
      * @return
      */
-    public static Future<RedisConnection> initRedisClient(){
+    public static void initRedisClient(Handler<AsyncResult<RedisConnection>> handler){
         //重新加载serverIpsStatic
         if (serverIpsStatic == null) {
             // TODO: 2021/9/11 采用jedis访问redis
 //            Jedis jedis = new Jedis("127.0.0.1" , 6379);
-            Jedis jedis = new Jedis("182.92.125.135" , 6379);
+            Jedis jedis = new Jedis("101.201.79.214" , 6379);
             String json = jedis.get("ips");
             jedis.close();
             serverIpsStatic = convertIp(json);
-
         }
         BizCheckUtils.checkNull(serverIpsStatic,"serverIpsStatic初始化失败");
-        Promise<RedisConnection> promise = Promise.promise();
         //初始化RedisClient
         Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                Redis.createClient(
-                        Main.vertx,
+                Redis.createClient(Main.vertx,
                         new RedisOptions()
                                 .setType(RedisClientType.SENTINEL)
         //                      .addConnectionString("redis://127.0.0.1:26379")
@@ -332,37 +331,37 @@ public class RedisClientUtil {
                                 .setPoolCleanerInterval(-1)
                                 .setPoolRecycleTimeout(120000)
                                 .setMaxPoolSize(8)
-                                .setMaxWaitingHandlers(32)).connect().onSuccess(
-                        conn -> {
-                            // make sure the client is reconnected on error
-                            conn.exceptionHandler(e -> {
-                                // attempt to reconnect,
-                                // if there is an unrecoverable error
-                                attemptReconnect(0);
-                            });
-                            // allow further processing
-                            promise.complete(conn);
+                                .setMaxWaitingHandlers(32)).connect(onConnect ->{
+                    if (onConnect.succeeded()) {
+                        connection = onConnect.result();
+                        // make sure the client is reconnected on error
+                        connection.exceptionHandler(e -> {
+                            // attempt to reconnect
+                            attemptReconnect(0);
                         });
+                    }
+                    // allow further processing
+                    handler.handle(onConnect);
+                });
             }
         });
         thread.start();
-        return promise.future();
     }
 
     /**
      * Attempt to reconnect up to MAX_RECONNECT_RETRIES
      */
     private static void attemptReconnect(int retry) {
-        if (retry > MAX_RECONNECT_RETRIES) {
-            // we should stop now, as there's nothing we can do.
-        } else {
-            // retry with backoff up to 10240 ms
-            long backoff = (long) (Math.pow(2, Math.min(retry, 10)) * 10);
-
-            Main.vertx.setTimer(backoff, timer -> {
-                initRedisClient().onFailure(t -> attemptReconnect(retry + 1));
-            });
-        }
+        logger.info("第" + retry + "次尝试重连 Redis");
+        // retry with backoff up to 10240 ms
+        long backoff = (long) (Math.pow(2, Math.min(retry, 10)) * 10);
+        Main.vertx.setTimer(backoff, timer -> initRedisClient(onReconnect -> {
+            if (onReconnect.succeeded()) {
+               redisAPI = RedisAPI.api(onReconnect.result());
+            } else if (onReconnect.failed()) {
+                attemptReconnect(retry+1);
+            }
+        }));
     }
 
     public static RedisAPI getRedisAPI(){
@@ -370,19 +369,34 @@ public class RedisClientUtil {
             return redisAPI;
         }else{
             synchronized (RedisClientUtil.class){
-                if(redisAPI==null){
-                    Future<RedisConnection> connectionFuture = initRedisClient();
-                    while(!connectionFuture.isComplete()){
+                if(redisAPI == null){
+                    initRedisClient(onCreate -> {
+                        if (onCreate.succeeded()) {
+                            redisAPI = RedisAPI.api(onCreate.result());
+                            logger.info("Redis 连接成功！");
+                        }else if(onCreate.failed()) {
+                            logger.error("Redis 连接失败！");
+                        }
+                    });
+                    while(redisAPI == null){
                         try {
                             Thread.sleep(10);
                         }catch (Exception e){
                         }
                     }
-                    redisAPI = RedisAPI.api(connectionFuture.result());
+
+                    // 本地客户端
+//                    SingleRedisClient singleRedisClient = new SingleRedisClient();
+//                    RedisConnection connection = singleRedisClient.init();
+//                    redisAPI = RedisAPI.api(connection);
                 }
             }
             return redisAPI;
         }
+    }
+
+    public static void setRedisAPI(RedisAPI newRedisAPI){
+        redisAPI = newRedisAPI;
     }
 
     public static String[] convertIp(String json){
