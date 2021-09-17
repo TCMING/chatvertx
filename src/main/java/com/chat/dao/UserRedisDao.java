@@ -8,6 +8,7 @@ import com.chat.utils.GsonUtils;
 import com.chat.utils.RedisClientUtil;
 import com.chat.verticle.RedisVerticle;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.Message;
 import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.ResponseType;
 import org.slf4j.Logger;
@@ -36,6 +37,28 @@ public class UserRedisDao {
         this.baseOperate();
     }
 
+    private void hGetAll(Message message, String username){
+        RedisClientUtil.getRedisAPI().hgetall(username, res -> {
+            try {
+                if(res.cause() != null){
+                    hGetAll(message,username);
+                    return;
+                }
+                if (res.succeeded() && res.result() != null && res.result().size() > 0 && res.result().type() == ResponseType.MULTI) {
+                    UserDto userDto = GsonUtils.jsonToBean(res.result().toString(), UserDto.class);
+                    if (userDto.getUsername() != null) {
+                        message.reply(userDto);
+                        return;
+                    }
+                }
+            } catch (Exception e){
+                logger.error("用户查询异常",e);
+            }
+            message.reply(null);
+        });
+    }
+
+
     public void baseOperate() {
         EventBus bus = Main.vertx.eventBus();
 
@@ -43,20 +66,7 @@ public class UserRedisDao {
         bus.<String>consumer(UserHandler.REDIS_USER_QUERY).handler(msg ->{
             try {
                 String username = msg.body();
-                RedisClientUtil.getRedisAPI().hgetall(username, res -> {
-                    try {
-                        if (res.succeeded() && res.result() != null && res.result().size() > 0 && res.result().type() == ResponseType.MULTI) {
-                            UserDto userDto = GsonUtils.jsonToBean(res.result().toString(), UserDto.class);
-                            if (userDto.getUsername() != null) {
-                                msg.reply(userDto);
-                                return;
-                            }
-                        }
-                    }catch (Exception e){
-                        logger.error("用户查询异常",e);
-                    }
-                    msg.reply(null);
-                });
+                hGetAll(msg,username);
             } catch (Exception e) {
                 logger.error("--", e);
                 msg.fail(400, e.getMessage());
