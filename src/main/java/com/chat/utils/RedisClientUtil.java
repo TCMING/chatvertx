@@ -338,7 +338,7 @@ public class RedisClientUtil {
                         connection.exceptionHandler(e -> {
                             // attempt to reconnect
 //                            attemptReconnect(0);
-                            redisAPI = RedisAPI.api((RedisConnection) null);
+                            redisAPI = null;
                         });
                     }
                     // allow further processing
