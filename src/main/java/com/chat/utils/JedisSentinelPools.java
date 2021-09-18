@@ -12,6 +12,7 @@ public class JedisSentinelPools {
 
     private volatile static JedisSentinelPool pool = null;
 
+    private static String[] serverIpsStatic;
     //可用连接实例的最大数目，默认为8；
     //如果赋值为-1，则表示不限制，如果pool已经分配了maxActive个jedis实例，则此时pool的状态为exhausted(耗尽)
     private static Integer MAX_TOTAL = 100;
@@ -43,12 +44,12 @@ public class JedisSentinelPools {
 
     private static void initPool(){
 
-        if (RedisClientUtil.serverIpsStatic == null) {
+        if (serverIpsStatic == null) {
 //            Jedis jedis = new Jedis("127.0.0.1" , 6379);
             Jedis jedis = new Jedis("47.94.19.223" , 6379);
             String json = jedis.get("ips");
             jedis.close();
-            RedisClientUtil.serverIpsStatic = RedisClientUtil.convertIp(json);
+            serverIpsStatic = RedisClientUtil.convertIp(json);
         }
 
         JedisPoolConfig config = new JedisPoolConfig();
@@ -66,9 +67,9 @@ public class JedisSentinelPools {
         config.setTestOnReturn(TEST_ON_RETURN);
         String masterName = "mymaster";
         Set<String> sentinels = new HashSet<String>();
-        sentinels.add(new HostAndPort(RedisClientUtil.serverIpsStatic[0],26379).toString());
-        sentinels.add(new HostAndPort(RedisClientUtil.serverIpsStatic[1],26379).toString());
-        sentinels.add(new HostAndPort(RedisClientUtil.serverIpsStatic[2],26379).toString());
+        sentinels.add(new HostAndPort(serverIpsStatic[0],26379).toString());
+        sentinels.add(new HostAndPort(serverIpsStatic[1],26379).toString());
+        sentinels.add(new HostAndPort(serverIpsStatic[2],26379).toString());
         pool = new JedisSentinelPool(masterName, sentinels, config, TIMEOUT);
     }
 }

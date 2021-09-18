@@ -1,8 +1,11 @@
 package com.chat.verticle;
 
-import com.chat.dao.MessageRedisDao;
-import com.chat.dao.RoomRedisDao;
-import com.chat.dao.UserRedisDao;
+import com.chat.dao.MessageJedisDao;
+
+import com.chat.dao.RoomJedisDao;
+
+import com.chat.dao.UserJedisDao;
+
 import com.chat.utils.RedisClientUtil;
 import com.chat.utils.SingleRedisClient;
 import io.vertx.core.AbstractVerticle;
@@ -15,11 +18,11 @@ public class RedisVerticle extends AbstractVerticle {
 
     public static final Logger logger = LoggerFactory.getLogger(RedisVerticle.class);
 
-    private UserRedisDao userRedisDao;
+    private MessageJedisDao userRedisDao;
 
-    private RoomRedisDao roomRedisDao;
+    private RoomJedisDao roomRedisDao;
 
-    private MessageRedisDao messageRedisDao;
+    private UserJedisDao messageRedisDao;
 
     public static final String UPDATE_CLUSTER_ADD = "update_cluster_add";
 
@@ -46,17 +49,10 @@ public class RedisVerticle extends AbstractVerticle {
         } );
     }
 
-    @Deprecated
-    public void initRedisDao(RedisAPI redisAPI) {
-        this.userRedisDao = new UserRedisDao(redisAPI);
-        this.roomRedisDao = new RoomRedisDao(redisAPI);
-        this.messageRedisDao = new MessageRedisDao(redisAPI);
-    }
-
     public void initRedisDao() {
-        this.userRedisDao = new UserRedisDao();
-        this.roomRedisDao = new RoomRedisDao();
-        this.messageRedisDao = new MessageRedisDao();
+        this.userRedisDao = new MessageJedisDao();
+        this.roomRedisDao = new RoomJedisDao();
+        this.messageRedisDao = new UserJedisDao();
     }
 
 }
