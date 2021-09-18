@@ -3,20 +3,18 @@ package com.chat.verticle;
 import com.chat.handler.MessageHandler;
 import com.chat.handler.RoomHandler;
 import com.chat.handler.UserHandler;
-import com.chat.utils.RedisClientUtil;
+import com.chat.utils.JedisSentinelPools;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.redis.client.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 
 public class ChatVerticle extends AbstractVerticle {
 
@@ -84,14 +82,27 @@ public class ChatVerticle extends AbstractVerticle {
     }
 
     private void test(RoutingContext routingContext){
-        RedisAPI api = RedisClientUtil.getRedisAPI();
-//        api.get("ips").onSuccess( ips -> {
-//            out(routingContext , ips.toString());
+//        RedisAPI api = RedisClientUtil.getRedisAPI();
+//        api.set(Arrays.asList("test","1")).onSuccess(test->{
+//            out(routingContext , "1");
 //        });
 
-        api.set(Arrays.asList("test","1")).onSuccess(test->{
-            out(routingContext , "1");
-        });
+        Jedis jedis = null;
+        try{
+            jedis = JedisSentinelPools.getJedis();
+            jedis.set("test","1");
+            String tt = jedis.get("test");
+            out(routingContext , tt);
+        }catch (JedisConnectionException ce){
+
+        }catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            if(jedis!=null){
+                jedis.close();
+            }
+        }
+
     }
 
     public static void out(RoutingContext ctx, String value) {
