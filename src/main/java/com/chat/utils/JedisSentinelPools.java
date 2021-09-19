@@ -14,6 +14,13 @@ public class JedisSentinelPools {
     private volatile static JedisSentinelPool pool = null;
 
     private static String[] serverIpsStatic;
+
+    private static JedisPoolConfig config = new JedisPoolConfig();
+
+    private static String masterName = "mymaster";
+
+    private  static Set<String> sentinels = new HashSet<String>();
+
     //可用连接实例的最大数目，默认为8；
     //如果赋值为-1，则表示不限制，如果pool已经分配了maxActive个jedis实例，则此时pool的状态为exhausted(耗尽)
     private static Integer MAX_TOTAL = 100;
@@ -53,21 +60,13 @@ public class JedisSentinelPools {
             serverIpsStatic = convertIp(json);
         }
 
-        JedisPoolConfig config = new JedisPoolConfig();
-        /*注意：
-            在高版本的jedis jar包，比如本版本2.9.0，JedisPoolConfig没有setMaxActive和setMaxWait属性了
-            这是因为高版本中官方废弃了此方法，用以下两个属性替换。
-            maxActive  ==>  maxTotal
-            maxWait==>  maxWaitMillis
-         */
         config.setMaxTotal(MAX_TOTAL);
         config.setMaxIdle(MAX_IDLE);
         config.setMaxWaitMillis(MAX_WAIT_MILLIS);
         config.setTestOnBorrow(TEST_ON_BORROW);
         config.setTestWhileIdle(TEST_WHILE_IDLE);
         config.setTestOnReturn(TEST_ON_RETURN);
-        String masterName = "mymaster";
-        Set<String> sentinels = new HashSet<String>();
+
         sentinels.add(new HostAndPort(serverIpsStatic[0],26379).toString());
         sentinels.add(new HostAndPort(serverIpsStatic[1],26379).toString());
         sentinels.add(new HostAndPort(serverIpsStatic[2],26379).toString());
@@ -81,5 +80,9 @@ public class JedisSentinelPools {
             serverIps[index] = ipList.get(index);
         }
         return serverIps;
+    }
+
+    public synchronized static void reSetPool(){
+        pool = new JedisSentinelPool(masterName , sentinels , config ,TIMEOUT);
     }
 }

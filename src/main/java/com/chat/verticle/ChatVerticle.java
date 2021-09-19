@@ -81,12 +81,7 @@ public class ChatVerticle extends AbstractVerticle {
         out(routingContext , "");
     }
 
-    private void test(RoutingContext routingContext){
-//        RedisAPI api = RedisClientUtil.getRedisAPI();
-//        api.set(Arrays.asList("test","1")).onSuccess(test->{
-//            out(routingContext , "1");
-//        });
-
+    private void test(RoutingContext routingContext) {
         Jedis jedis = null;
         try{
             jedis = JedisSentinelPools.getJedis();
@@ -94,7 +89,14 @@ public class ChatVerticle extends AbstractVerticle {
             String tt = jedis.get("test");
             out(routingContext , tt);
         }catch (JedisConnectionException ce){
-            ce.printStackTrace();
+            logger.error("-- jedis connection exception");
+//            JedisSentinelPools.reSetPool();
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException ie) {
+                logger.error("-- InterruptedException" , ie);;
+            }
+            test(routingContext);
         }catch (Exception e){
             e.printStackTrace();
         } finally {

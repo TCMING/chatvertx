@@ -85,7 +85,6 @@ public class MessageHandler {
      * @param context
      */
     public void pullMessages(RoutingContext context){
-
         String json = context.getBody().toString();
         QueryControlData controlData = GsonUtils.jsonToBean(json,QueryControlData.class);
         if(controlData.getPageIndex() >= 0 || controlData.getPageSize() <= 0){

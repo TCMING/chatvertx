@@ -13,6 +13,7 @@ import io.vertx.redis.client.ResponseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -95,7 +96,11 @@ public class RoomJedisDao {
                 int pageSize = controlData.getPageSize() + startIndex - 1;
 
                 List<String> rooms = getJedis().lrange(RoomDtoList, startIndex, pageSize);
-                String res = GsonUtils.toJsonString(rooms);
+                List<RoomDto> roomDtos = new ArrayList<>();
+                for (String str : rooms  ) {
+                    roomDtos.add(GsonUtils.jsonToBean(str , RoomDto.class));
+                }
+                String res = GsonUtils.toJsonString(roomDtos);
                 logger.info("查询房间列表完成 value={};", res);
                 msg.reply(res);
             } catch (Exception e) {

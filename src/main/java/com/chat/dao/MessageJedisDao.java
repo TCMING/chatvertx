@@ -2,6 +2,7 @@ package com.chat.dao;
 
 import com.chat.Main;
 import com.chat.handler.MessageHandler;
+import com.chat.model.MessageRetrive;
 import com.chat.utils.GsonUtils;
 import com.chat.utils.RedisClientUtil;
 import com.chat.verticle.RedisVerticle;
@@ -11,6 +12,7 @@ import io.vertx.redis.client.ResponseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -52,7 +54,11 @@ public class MessageJedisDao {
                 }
                 List<String> messages = getJedis().lrange(queryParam.get(0), Integer.parseInt(queryParam.get(1)),
                         Integer.parseInt(queryParam.get(2)));
-                msg.reply(GsonUtils.toJsonString(messages));
+                List<MessageRetrive> messageRetrives = new ArrayList<>();
+                for(String str : messages){
+                    messageRetrives.add(GsonUtils.jsonToBean(str ,MessageRetrive.class ));
+                }
+                msg.reply(GsonUtils.toJsonString(messageRetrives));
             } catch (Exception e) {
                 msg.fail(400, e.getMessage());
             }
