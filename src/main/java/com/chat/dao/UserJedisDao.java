@@ -57,6 +57,12 @@ public class UserJedisDao {
         }
     }
 
+    private void updateUserRoom(Message msg , UserDto userDto){
+        long res = getJedis().hset(userDto.getUsername(), "roomId", String.valueOf(userDto.getRoomId()));
+        logger.info("更新用户房间id完成 " + userDto.getUsername());
+        msg.reply(true);
+    }
+
     public void baseOperate() {
         EventBus bus = Main.vertx.eventBus();
 
@@ -99,11 +105,17 @@ public class UserJedisDao {
 
         //更新用户房间信息
         bus.<UserDto>consumer(UserHandler.REDIS_USER_ROOM_ID_UPDATE).handler(msg -> {
+            UserDto userDto = msg.body();
             try {
-                UserDto userDto = msg.body();
-                long res = getJedis().hset(userDto.getUsername(), "roomId", String.valueOf(userDto.getRoomId()));
-                logger.info("更新用户房间id完成 " + userDto.getUsername());
-                msg.reply(true);
+                updateUserRoom(msg , userDto);
+            }catch (JedisConnectionException ce){
+                logger.error("-- jedis connection exception");
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                    logger.error("-- InterruptedException" , ie);;
+                }
+                updateUserRoom(msg , userDto);
             } catch (Exception e) {
                 msg.fail(400, e.getMessage());
             }
