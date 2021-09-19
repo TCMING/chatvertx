@@ -1,9 +1,6 @@
 package com.chat.utils;
 
-import redis.clients.jedis.HostAndPort;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.JedisSentinelPool;
+import redis.clients.jedis.*;
 
 import java.util.HashSet;
 import java.util.List;
@@ -12,6 +9,8 @@ import java.util.Set;
 public class JedisSentinelPools {
 
     private volatile static JedisSentinelPool pool = null;
+
+    private volatile static JedisPool localPool = null;
 
     private static String[] serverIpsStatic;
 
@@ -50,11 +49,32 @@ public class JedisSentinelPools {
         return pool.getResource();
     }
 
+    public static Jedis getLocalJedis() {
+        if (localPool == null) {
+            synchronized (JedisSentinelPools.class) {
+                if (localPool == null) {
+                    initLocalPool();
+                }
+            }
+        }
+        return localPool.getResource();
+    }
+
+    private static void initLocalPool(){
+        config.setMaxTotal(MAX_TOTAL);
+        config.setMaxIdle(MAX_IDLE);
+        config.setMaxWaitMillis(MAX_WAIT_MILLIS);
+        config.setTestOnBorrow(TEST_ON_BORROW);
+        config.setTestWhileIdle(TEST_WHILE_IDLE);
+        config.setTestOnReturn(TEST_ON_RETURN);
+        localPool = new JedisPool(config, "127.0.0.1", 6379, TIMEOUT);
+    }
+
     private static void initPool() {
 
         if (serverIpsStatic == null) {
-//            Jedis jedis = new Jedis("127.0.0.1" , 6379);
-            Jedis jedis = new Jedis("47.94.19.223", 6379);
+            Jedis jedis = new Jedis("127.0.0.1" , 6379);
+//            Jedis jedis = new Jedis("47.94.19.223", 6379);
             String json = jedis.get("ips");
             jedis.close();
             serverIpsStatic = convertIp(json);
@@ -84,5 +104,9 @@ public class JedisSentinelPools {
 
     public static void returnResource(Jedis jedis) {
         pool.returnResource(jedis);
+    }
+
+    public static void returnLocalResource(Jedis jedis) {
+        localPool.returnResource(jedis);
     }
 }

@@ -14,8 +14,8 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import java.util.Map;
-import static com.chat.utils.JedisSentinelPools.getJedis;
-import static com.chat.utils.JedisSentinelPools.returnResource;
+
+import static com.chat.utils.JedisSentinelPools.*;
 
 public class UserJedisDao {
 
@@ -53,10 +53,10 @@ public class UserJedisDao {
     }
 
     private void queryUser(Message msg , String username){
-        Jedis jedis = getJedis();
+        Jedis jedis = getLocalJedis();
         try {
             Map<String, String> userMap = jedis.hgetAll(username);
-            returnResource(jedis);
+            returnLocalResource(jedis);
             if (userMap.get("username") != null) {
                 String roomIdStr = userMap.get("roomId");
                 int roomId = roomIdStr == null ? 0 : Integer.parseInt(roomIdStr);

@@ -5,12 +5,10 @@ import com.chat.handler.RoomHandler;
 import com.chat.model.QueryControlData;
 import com.chat.model.RoomDto;
 import com.chat.utils.GsonUtils;
-import com.chat.utils.RedisClientUtil;
+import com.chat.utils.JedisSentinelPools;
 import com.chat.verticle.RedisVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
-import io.vertx.redis.client.RedisAPI;
-import io.vertx.redis.client.ResponseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -19,11 +17,8 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static com.chat.utils.JedisSentinelPools.getJedis;
-import static com.chat.utils.JedisSentinelPools.returnResource;
+import static com.chat.utils.JedisSentinelPools.*;
 
 public class RoomJedisDao {
 
@@ -81,10 +76,10 @@ public class RoomJedisDao {
     }
 
     private void queryRommidName(Message msg ){
-        Jedis jedis = getJedis();
+        Jedis jedis = JedisSentinelPools.getLocalJedis();
         try{
             String roomname = jedis.hget(IdRoomMap, (String) msg.body());
-            returnResource(jedis);
+            returnLocalResource(jedis);
             logger.info("查询房间信息完成,key={} ", msg.body());
             msg.reply(roomname);
         } catch (JedisConnectionException ce){
@@ -119,13 +114,13 @@ public class RoomJedisDao {
     }
 
     private void queryRoomList(Message msg , QueryControlData controlData){
-        Jedis jedis = getJedis();
+        Jedis jedis = getLocalJedis();
         try {
             int startIndex = (controlData.getPageIndex()) * controlData.getPageSize();
             int pageSize = controlData.getPageSize() + startIndex - 1;
 
             List<String> rooms = jedis.lrange(RoomDtoList, startIndex, pageSize);
-            returnResource(jedis);
+            returnLocalResource(jedis);
             List<RoomDto> roomDtos = new ArrayList<>();
             for (String str : rooms  ) {
                 roomDtos.add(GsonUtils.jsonToBean(str , RoomDto.class));
@@ -184,11 +179,11 @@ public class RoomJedisDao {
     }
 
     private void smembersRoomidUsername(Message msg , String roomid){
-        Jedis jedis = getJedis();
+        Jedis jedis = getLocalJedis();
         logger.info("--room users:"+Thread.currentThread().getName());
         try {
             Set<String> users = jedis.smembers(roomid);
-            returnResource(jedis);
+            returnLocalResource(jedis);
             logger.info("房间查询用户信息完成 value={};", roomid);
             msg.reply(GsonUtils.toJsonString(users));
         } catch (JedisConnectionException ce){

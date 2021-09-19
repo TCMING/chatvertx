@@ -4,12 +4,9 @@ import com.chat.Main;
 import com.chat.handler.MessageHandler;
 import com.chat.model.MessageRetrive;
 import com.chat.utils.GsonUtils;
-import com.chat.utils.RedisClientUtil;
 import com.chat.verticle.RedisVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
-import io.vertx.redis.client.RedisAPI;
-import io.vertx.redis.client.ResponseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -17,11 +14,8 @@ import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static com.chat.utils.JedisSentinelPools.getJedis;
-import static com.chat.utils.JedisSentinelPools.returnResource;
+import static com.chat.utils.JedisSentinelPools.*;
 
 public class MessageJedisDao {
 
@@ -52,7 +46,7 @@ public class MessageJedisDao {
     }
 
     private void messageRetrieve(Message msg,List<String> queryParam ){
-        Jedis jedis = getJedis();
+        Jedis jedis = getLocalJedis();
         try {
             if(queryParam == null || queryParam.size() != 3){
                 msg.reply(false);
@@ -60,7 +54,7 @@ public class MessageJedisDao {
             }
             List<String> messages = jedis.lrange(queryParam.get(0), Integer.parseInt(queryParam.get(1)),
                     Integer.parseInt(queryParam.get(2)));
-            returnResource(jedis);
+            returnLocalResource(jedis);
             List<MessageRetrive> messageRetrives = new ArrayList<>();
             for(String str : messages){
                 messageRetrives.add(GsonUtils.jsonToBean(str ,MessageRetrive.class ));
