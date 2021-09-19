@@ -43,15 +43,6 @@ public class JedisSentinelPools {
         return pool.getResource();
     }
 
-    public static void initIps(String ips){
-//        Jedis jedis = new Jedis("127.0.0.1" , 6379);
-        Jedis jedis = new Jedis("47.94.19.223" , 6379);
-        jedis.set("ips",ips);
-        jedis.close();
-        serverIpsStatic = convertIp(ips);
-        initPool();
-    }
-
     private static void initPool(){
 
         if (serverIpsStatic == null) {

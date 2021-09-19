@@ -306,8 +306,8 @@ public class RedisClientUtil {
         //重新加载serverIpsStatic
         if (serverIpsStatic == null) {
             // TODO: 2021/9/11 采用jedis访问redis
-//            Jedis jedis = new Jedis("127.0.0.1" , 6379);
-            Jedis jedis = new Jedis("47.94.19.223" , 6379);
+            Jedis jedis = new Jedis("127.0.0.1" , 6379);
+//            Jedis jedis = new Jedis("101.201.79.214" , 6379);
             String json = jedis.get("ips");
             jedis.close();
             serverIpsStatic = convertIp(json);

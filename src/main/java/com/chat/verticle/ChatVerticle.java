@@ -94,7 +94,7 @@ public class ChatVerticle extends AbstractVerticle {
             String tt = jedis.get("test");
             out(routingContext , tt);
         }catch (JedisConnectionException ce){
-
+            ce.printStackTrace();
         }catch (Exception e){
             e.printStackTrace();
         } finally {
