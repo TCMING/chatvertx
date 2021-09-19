@@ -49,6 +49,7 @@ public class JedisSentinelPools {
         jedis.set("ips",ips);
         jedis.close();
         serverIpsStatic = convertIp(ips);
+        initPool();
     }
 
     private static void initPool(){

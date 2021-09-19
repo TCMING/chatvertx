@@ -36,9 +36,10 @@ public class UserJedisDao {
         bus.<String>consumer(UserHandler.REDIS_USER_QUERY).handler(msg ->{
             try {
                 String username = msg.body();
-                Map<String, String> userInfo = getJedis().hgetAll(username);
-                if (userInfo.get("username") != null) {
-                    msg.reply(userInfo);
+                Map<String, String> userMap = getJedis().hgetAll(username);
+                UserDto userDto = GsonUtils.mapToBean(userMap,UserDto.class);
+                if (userDto.getUsername() != null) {
+                    msg.reply(userDto);
                 }else{
                     msg.reply(null);
                 }

@@ -67,6 +67,16 @@ public class GsonUtils {
         return t;
     }
 
+    public static <T> T mapToBean(Map<String,String> map, Class<T> cls) {
+
+        String json = gson.toJson(map);
+        T t = null;
+        if (gson != null) {
+            t = gson.fromJson(json, cls);
+        }
+        return t;
+    }
+
     /**
      * 转成list
      * 解决泛型问题
@@ -135,7 +145,7 @@ public class GsonUtils {
             Set<Map.Entry<String, JsonElement>> sets = jsonObject.entrySet();
             Map<String,String> map = new HashMap<>();
             sets.forEach(entry -> {
-                map.put(entry.getKey(),entry.getValue().toString());
+                map.put(entry.getKey(), entry.getValue().getAsString());
             });
             return map;
         }catch (Exception e){
