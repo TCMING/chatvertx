@@ -7,9 +7,11 @@ import com.chat.utils.GsonUtils;
 import com.chat.utils.RedisClientUtil;
 import com.chat.verticle.RedisVerticle;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.eventbus.Message;
 import io.vertx.redis.client.ResponseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,22 @@ public class UserJedisDao {
 
     public UserJedisDao() {
         this.baseOperate();
+    }
+
+    private void addUser(Message msg , UserDto userDto){
+        Map<String, String> keyValues = GsonUtils.<UserDto>bean2Map(userDto);
+        if (keyValues == null) {
+            logger.error("用户信息错误 " + userDto.getUsername());
+            msg.fail(400, "message error");
+            return;
+        }
+        AtomicBoolean finalRes = new AtomicBoolean(true);
+        keyValues.forEach((key, value) -> {
+            long res = getJedis().hset(userDto.getUsername(), key, value);
+            finalRes.set(res == 1);
+        });
+        logger.info("保存用户信息完成 username={},finalRes={}", userDto.getUsername(), finalRes.get());
+        msg.reply(finalRes.get());
     }
 
     public void baseOperate() {
@@ -51,22 +69,32 @@ public class UserJedisDao {
 
         //保存用户 map类型 key(username) value(UserDto各字段)
         bus.<UserDto>consumer(UserHandler.REDIS_USER_CREATE).handler(msg ->{
+            UserDto userDto = msg.body();
             try {
-                UserDto userDto = msg.body();
 
-                Map<String, String> keyValues = GsonUtils.<UserDto>bean2Map(userDto);
-                if (keyValues == null) {
-                    logger.error("用户信息错误 " + userDto.getUsername());
-                    msg.fail(400, "message error");
-                    return;
+//                Map<String, String> keyValues = GsonUtils.<UserDto>bean2Map(userDto);
+//                if (keyValues == null) {
+//                    logger.error("用户信息错误 " + userDto.getUsername());
+//                    msg.fail(400, "message error");
+//                    return;
+//                }
+//                AtomicBoolean finalRes = new AtomicBoolean(true);
+//                keyValues.forEach((key, value) -> {
+//                    long res = getJedis().hset(userDto.getUsername(), key, value);
+//                    finalRes.set(res == 1);
+//                });
+//                logger.info("保存用户信息完成 username={},finalRes={}", userDto.getUsername(), finalRes.get());
+//                msg.reply(finalRes.get());
+
+                addUser(msg , userDto);
+            }catch (JedisConnectionException ce){
+                logger.error("-- jedis connection exception");
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                    logger.error("-- InterruptedException" , ie);;
                 }
-                AtomicBoolean finalRes = new AtomicBoolean(true);
-                keyValues.forEach((key, value) -> {
-                    long res = getJedis().hset(userDto.getUsername(), key, value);
-                    finalRes.set(res == 1);
-                });
-                logger.info("保存用户信息完成 username={},finalRes={}", userDto.getUsername(), finalRes.get());
-                msg.reply(finalRes.get());
+                addUser(msg , userDto);
             } catch (Exception e) {
                 msg.fail(400, e.getMessage());
             }

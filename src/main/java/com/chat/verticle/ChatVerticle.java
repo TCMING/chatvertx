@@ -90,7 +90,6 @@ public class ChatVerticle extends AbstractVerticle {
             out(routingContext , tt);
         }catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
-//            JedisSentinelPools.reSetPool();
             try {
                 Thread.sleep(500);
             } catch (InterruptedException ie) {
