@@ -122,7 +122,6 @@ public class RoomJedisDao {
                 long res = getJedis().srem(saveInfo.get(0), saveInfo.get(1));
                 logger.info("房间移除用户信息完成 value={};" + GsonUtils.toJsonString(saveInfo));
                 msg.reply(true);
-
             } catch (Exception e) {
                 msg.fail(400, e.getMessage());
             }

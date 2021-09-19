@@ -118,9 +118,6 @@ public class MessageHandler {
                 sendError(context, "Invalid input");
             }
         });
-
     }
-
-
 
 }

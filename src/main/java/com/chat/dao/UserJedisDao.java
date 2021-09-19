@@ -78,7 +78,7 @@ public class UserJedisDao {
                 UserDto userDto = msg.body();
                 long res = getJedis().hset(userDto.getUsername(), "roomId", String.valueOf(userDto.getRoomId()));
                 logger.info("更新用户房间id完成 " + userDto.getUsername());
-                msg.reply(res == 1);
+                msg.reply(true);
             } catch (Exception e) {
                 msg.fail(400, e.getMessage());
             }

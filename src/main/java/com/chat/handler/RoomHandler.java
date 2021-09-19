@@ -98,6 +98,8 @@ public class RoomHandler {
                                                 sendError(context,"save roomid username error");
                                             }
                                         });
+                                    }else{
+                                        sendError(context,"save roomid username error");
                                     }
                                 });
                             }else{
@@ -242,9 +244,9 @@ public class RoomHandler {
                 if(userReply.succeeded() && userReply.result() != null && userReply.result().body() != null){
                     Integer queryNum = 1;
                     //2.获取可用房间id
-                    bus.<Integer>request(REDIS_ROOM_ID_INIT, queryNum, idGetReply ->{
+                    bus.<Long>request(REDIS_ROOM_ID_INIT, queryNum, idGetReply ->{
                         if(idGetReply.succeeded() && idGetReply.result() != null &&  idGetReply.result().body() > 0){
-                            Integer roomId = idGetReply.result().body();
+                            Long roomId = idGetReply.result().body();
                             RoomDto roomDto = new RoomDto(roomId,room.getName());
                             //3.保存房间 id与name信息
                             bus.<Boolean>request(REDIS_ROOM_ID_NAME_SAVE, roomDto, saveIdNameReply -> {
@@ -266,6 +268,8 @@ public class RoomHandler {
                             context.fail(400);
                         }
                     });
+                }else{
+                    context.fail(400);
                 }
             });
         } catch (Exception e) {

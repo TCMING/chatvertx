@@ -52,7 +52,7 @@ public class MessageJedisDao {
                 }
                 List<String> messages = getJedis().lrange(queryParam.get(0), Integer.parseInt(queryParam.get(1)),
                         Integer.parseInt(queryParam.get(2)));
-                msg.reply(messages);
+                msg.reply(GsonUtils.toJsonString(messages));
             } catch (Exception e) {
                 msg.fail(400, e.getMessage());
             }
