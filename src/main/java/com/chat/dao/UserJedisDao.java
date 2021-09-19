@@ -4,22 +4,16 @@ import com.chat.Main;
 import com.chat.handler.UserHandler;
 import com.chat.model.UserDto;
 import com.chat.utils.GsonUtils;
-import com.chat.utils.RedisClientUtil;
 import com.chat.verticle.RedisVerticle;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
-import io.vertx.redis.client.ResponseType;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import static com.chat.utils.JedisSentinelPools.getJedis;
 import static com.chat.utils.JedisSentinelPools.returnResource;
 
@@ -36,20 +30,16 @@ public class UserJedisDao {
     private void addUser(Message msg , UserDto userDto){
         final Jedis jedis = getJedis();
         try {
-            Map<String, String> keyValues = GsonUtils.<UserDto>bean2Map(userDto);
+            Map<String, String> keyValues = GsonUtils.bean2Map(userDto);
             if (keyValues == null) {
                 logger.error("用户信息错误 " + userDto.getUsername());
                 msg.fail(400, "message error");
                 return;
             }
-            AtomicBoolean finalRes = new AtomicBoolean(true);
-            keyValues.forEach((key, value) -> {
-                long res = jedis.hset(userDto.getUsername(), key, value);
-                finalRes.set(res == 1);
-            });
+            String res = jedis.hmset(userDto.getUsername(), keyValues);
             returnResource(jedis);
-            logger.info("保存用户信息完成 username={},finalRes={}", userDto.getUsername(), finalRes.get());
-            msg.reply(finalRes.get());
+            logger.info("保存用户信息完成 username={},finalRes={}", userDto.getUsername(), res);
+            msg.reply(StringUtils.equals(res,"OK"));
         } catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
             jedis.close();
@@ -67,8 +57,16 @@ public class UserJedisDao {
         try {
             Map<String, String> userMap = jedis.hgetAll(username);
             returnResource(jedis);
-            UserDto userDto = GsonUtils.mapToBean(userMap, UserDto.class);
-            if (userDto.getUsername() != null) {
+            if (userMap.get("username") != null) {
+                String roomIdStr = userMap.get("roomId");
+                int roomId = roomIdStr == null ? 0 : Integer.parseInt(roomIdStr);
+                UserDto userDto = UserDto.builder().username(userMap.get("username"))
+                        .firstName(userMap.get("firstName"))
+                        .lastName(userMap.get("lastName"))
+                        .email(userMap.get("email"))
+                        .password(userMap.get("password"))
+                        .phone(userMap.get("phone"))
+                        .roomId(roomId).build();
                 msg.reply(userDto);
             } else {
                 msg.reply(null);
@@ -80,7 +78,6 @@ public class UserJedisDao {
                 Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException", ie);
-                ;
             }
             queryUser(msg, username);
         }
@@ -92,7 +89,7 @@ public class UserJedisDao {
             long res = jedis.hset(userDto.getUsername(), "roomId", String.valueOf(userDto.getRoomId()));
             returnResource(jedis);
             logger.info("更新用户房间id完成 " + userDto.getUsername());
-            msg.reply(true);
+            msg.reply(res == 0);
         } catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
             jedis.close();

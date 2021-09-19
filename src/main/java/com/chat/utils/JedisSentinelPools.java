@@ -53,8 +53,8 @@ public class JedisSentinelPools {
     private static void initPool() {
 
         if (serverIpsStatic == null) {
-            Jedis jedis = new Jedis("127.0.0.1" , 6379);
-//            Jedis jedis = new Jedis("47.94.19.223", 6379);
+//            Jedis jedis = new Jedis("127.0.0.1" , 6379);
+            Jedis jedis = new Jedis("47.94.19.223", 6379);
             String json = jedis.get("ips");
             jedis.close();
             serverIpsStatic = convertIp(json);
