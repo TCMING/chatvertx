@@ -6,6 +6,7 @@ import com.chat.dao.RoomJedisDao;
 
 import com.chat.dao.UserJedisDao;
 
+import com.chat.utils.JedisSentinelPools;
 import com.chat.utils.RedisClientUtil;
 import com.chat.utils.SingleRedisClient;
 import io.vertx.core.AbstractVerticle;
@@ -38,10 +39,8 @@ public class RedisVerticle extends AbstractVerticle {
         consumner.handler( msg -> {
             try {
                 String json = msg.body();
-                if(RedisClientUtil.initRedisServer(json)){
-                    msg.reply(true);
-                    return ;
-                }
+                JedisSentinelPools.initIps(json);
+                msg.reply(true);
             }catch (Exception e){
                 logger.error("初始化redisServer失败",e);
             }

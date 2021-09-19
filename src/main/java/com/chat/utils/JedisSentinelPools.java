@@ -6,6 +6,7 @@ import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisSentinelPool;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class JedisSentinelPools {
@@ -42,6 +43,14 @@ public class JedisSentinelPools {
         return pool.getResource();
     }
 
+    public static void initIps(String ips){
+//        Jedis jedis = new Jedis("127.0.0.1" , 6379);
+        Jedis jedis = new Jedis("47.94.19.223" , 6379);
+        jedis.set("ips",ips);
+        jedis.close();
+        serverIpsStatic = convertIp(ips);
+    }
+
     private static void initPool(){
 
         if (serverIpsStatic == null) {
@@ -49,7 +58,7 @@ public class JedisSentinelPools {
             Jedis jedis = new Jedis("47.94.19.223" , 6379);
             String json = jedis.get("ips");
             jedis.close();
-            serverIpsStatic = RedisClientUtil.convertIp(json);
+            serverIpsStatic = convertIp(json);
         }
 
         JedisPoolConfig config = new JedisPoolConfig();
@@ -71,5 +80,14 @@ public class JedisSentinelPools {
         sentinels.add(new HostAndPort(serverIpsStatic[1],26379).toString());
         sentinels.add(new HostAndPort(serverIpsStatic[2],26379).toString());
         pool = new JedisSentinelPool(masterName, sentinels, config, TIMEOUT);
+    }
+
+    public static String[] convertIp(String json){
+        List<String> ipList = GsonUtils.jsonToList(json , String.class);
+        String[] serverIps = new String[3];
+        for(int index=0 ; index < 3 ; index++){
+            serverIps[index] = ipList.get(index);
+        }
+        return serverIps;
     }
 }
