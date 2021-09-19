@@ -12,6 +12,7 @@ import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.ResponseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.chat.utils.JedisSentinelPools.getJedis;
+import static com.chat.utils.JedisSentinelPools.returnResource;
 
 public class MessageJedisDao {
 
@@ -32,13 +34,16 @@ public class MessageJedisDao {
     }
 
     private void messageSend(Message msg,List<String> saveInfo){
+        Jedis jedis = getJedis();
         try{
-            long index = getJedis().lpush(saveInfo.get(0), saveInfo.get(1));
+            long index = jedis.lpush(saveInfo.get(0), saveInfo.get(1));
+            returnResource(jedis);
             msg.reply(true);
         }catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }
@@ -47,13 +52,15 @@ public class MessageJedisDao {
     }
 
     private void messageRetrieve(Message msg,List<String> queryParam ){
+        Jedis jedis = getJedis();
         try {
             if(queryParam == null || queryParam.size() != 3){
                 msg.reply(false);
                 return ;
             }
-            List<String> messages = getJedis().lrange(queryParam.get(0), Integer.parseInt(queryParam.get(1)),
+            List<String> messages = jedis.lrange(queryParam.get(0), Integer.parseInt(queryParam.get(1)),
                     Integer.parseInt(queryParam.get(2)));
+            returnResource(jedis);
             List<MessageRetrive> messageRetrives = new ArrayList<>();
             for(String str : messages){
                 messageRetrives.add(GsonUtils.jsonToBean(str ,MessageRetrive.class ));
@@ -61,8 +68,9 @@ public class MessageJedisDao {
             msg.reply(GsonUtils.toJsonString(messageRetrives));
         } catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }
@@ -71,13 +79,16 @@ public class MessageJedisDao {
     }
 
     private void messageIdSadd(Message msg,String messageId){
+        Jedis jedis = getJedis();
         try {
-            long resNum = getJedis().sadd(MESSAGE_SET,messageId);
+            long resNum = jedis.sadd(MESSAGE_SET,messageId);
+            returnResource(jedis);
             msg.reply(resNum == 1);
         }  catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }

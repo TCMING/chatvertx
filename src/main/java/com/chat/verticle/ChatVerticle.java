@@ -87,6 +87,7 @@ public class ChatVerticle extends AbstractVerticle {
             jedis = JedisSentinelPools.getJedis();
             jedis.set("test","1");
             String tt = jedis.get("test");
+            JedisSentinelPools.returnResource(jedis);
             out(routingContext , tt);
         }catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");

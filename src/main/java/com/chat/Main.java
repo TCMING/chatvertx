@@ -27,7 +27,7 @@ public class Main {
         vertx.eventBus().registerDefaultCodec(QueryControlData.class, new StandardDtoCodec<>("QueryControlData"));
         vertx.eventBus().registerDefaultCodec(ArrayList.class, new StandardDtoCodec<>("ArrayList"));
 
-        vertx.deployVerticle(ChatVerticle.class, new DeploymentOptions().setInstances(4));
+        vertx.deployVerticle(ChatVerticle.class, new DeploymentOptions().setInstances(8));
         vertx.deployVerticle(RedisVerticle.class, new DeploymentOptions().setWorker(true).setInstances(8));
     }
 }

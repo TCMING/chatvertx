@@ -13,6 +13,7 @@ import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.ResponseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.chat.utils.JedisSentinelPools.getJedis;
+import static com.chat.utils.JedisSentinelPools.returnResource;
 
 public class RoomJedisDao {
 
@@ -38,13 +40,16 @@ public class RoomJedisDao {
     }
 
     private void roomIdInit(Message msg){
+        Jedis jedis = getJedis();
         try {
-            long userId = getJedis().incrBy(RoomIdKey, 1);
+            long userId = jedis.incrBy(RoomIdKey, 1);
+            returnResource(jedis);
             msg.reply(userId);
         } catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }
@@ -53,8 +58,10 @@ public class RoomJedisDao {
     }
 
     private void saveRoomidName(Message msg , RoomDto roomDto){
+        Jedis jedis = getJedis();
         try {
-            long res = getJedis().hset(IdRoomMap, String.valueOf(roomDto.getId()), roomDto.getName());
+            long res = jedis.hset(IdRoomMap, String.valueOf(roomDto.getId()), roomDto.getName());
+            returnResource(jedis);
             if (res == 1) {
                 logger.info("保存房间信息完成 " + roomDto.getId());
             } else {
@@ -63,8 +70,9 @@ public class RoomJedisDao {
             msg.reply(true);
         }catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }
@@ -73,14 +81,17 @@ public class RoomJedisDao {
     }
 
     private void queryRommidName(Message msg ){
+        Jedis jedis = getJedis();
         try{
-            String roomname = getJedis().hget(IdRoomMap, (String) msg.body());
+            String roomname = jedis.hget(IdRoomMap, (String) msg.body());
+            returnResource(jedis);
             logger.info("查询房间信息完成,key={} ", msg.body());
             msg.reply(roomname);
         } catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }
@@ -89,14 +100,17 @@ public class RoomJedisDao {
     }
 
     private void saveRoomList(Message msg , RoomDto roomDto){
+        Jedis jedis = getJedis();
         try{
-            long res = getJedis().rpush(RoomDtoList, GsonUtils.toJsonString(roomDto));
+            long res = jedis.rpush(RoomDtoList, GsonUtils.toJsonString(roomDto));
+            returnResource(jedis);
             logger.info("保存房间信息完成 " + roomDto.getId());
             msg.reply(true);
         } catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }
@@ -105,11 +119,13 @@ public class RoomJedisDao {
     }
 
     private void queryRoomList(Message msg , QueryControlData controlData){
+        Jedis jedis = getJedis();
         try {
             int startIndex = (controlData.getPageIndex()) * controlData.getPageSize();
             int pageSize = controlData.getPageSize() + startIndex - 1;
 
-            List<String> rooms = getJedis().lrange(RoomDtoList, startIndex, pageSize);
+            List<String> rooms = jedis.lrange(RoomDtoList, startIndex, pageSize);
+            returnResource(jedis);
             List<RoomDto> roomDtos = new ArrayList<>();
             for (String str : rooms  ) {
                 roomDtos.add(GsonUtils.jsonToBean(str , RoomDto.class));
@@ -119,8 +135,9 @@ public class RoomJedisDao {
             msg.reply(res);
         } catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }
@@ -129,14 +146,17 @@ public class RoomJedisDao {
     }
 
     private void addRoomidUsername(Message msg , List<String> saveInfo){
+        Jedis jedis = getJedis();
         try {
-            long res = getJedis().sadd(saveInfo.get(0), saveInfo.get(1));
+            long res = jedis.sadd(saveInfo.get(0), saveInfo.get(1));
+            returnResource(jedis);
             logger.info("房间保存用户信息完成 value={};" + GsonUtils.toJsonString(saveInfo));
             msg.reply(res == 1);
         } catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }
@@ -145,14 +165,17 @@ public class RoomJedisDao {
     }
 
     private void sremRoomidUsername(Message msg , List<String> saveInfo){
+        Jedis jedis = getJedis();
         try {
-            long res = getJedis().srem(saveInfo.get(0), saveInfo.get(1));
+            long res = jedis.srem(saveInfo.get(0), saveInfo.get(1));
+            returnResource(jedis);
             logger.info("房间移除用户信息完成 value={};" + GsonUtils.toJsonString(saveInfo));
             msg.reply(true);
         } catch (JedisConnectionException ce){
             logger.error("-- jedis connection exception");
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }
@@ -161,14 +184,18 @@ public class RoomJedisDao {
     }
 
     private void smembersRoomidUsername(Message msg , String roomid){
+        Jedis jedis = getJedis();
+        logger.info("--room users:"+Thread.currentThread().getName());
         try {
-            Set<String> users = getJedis().smembers(roomid);
+            Set<String> users = jedis.smembers(roomid);
+            returnResource(jedis);
             logger.info("房间查询用户信息完成 value={};", roomid);
             msg.reply(GsonUtils.toJsonString(users));
         } catch (JedisConnectionException ce){
-            logger.error("-- jedis connection exception");
+            logger.error("-- jedis connection exception" , ce);
+            jedis.close();
             try {
-                Thread.sleep(500);
+                Thread.sleep(600);
             } catch (InterruptedException ie) {
                 logger.error("-- InterruptedException" , ie);;
             }

@@ -29,7 +29,7 @@ public class RedisVerticle extends AbstractVerticle {
 
     @Override
     public void start(){
-        System.out.println("---------"+Thread.currentThread().getName());
+        System.out.println("---------redis verticle: "+Thread.currentThread().getName());
         updateCluster();
         initRedisDao();
     }

@@ -143,7 +143,7 @@ public class RedisClientUtil {
                                                                                                                             // do something...
                                                                                                                             System.out.println("----set sentinel3");
                                                                                                                             try {
-                                                                                                                                Thread.sleep(10000);
+                                                                                                                                Thread.sleep(1000);
                                                                                                                             } catch (InterruptedException e) {
                                                                                                                                 logger.error("--",e);
                                                                                                                             }
@@ -172,7 +172,7 @@ public class RedisClientUtil {
                                                                                                                                         conn3.send(Request.cmd(Command.SENTINEL).arg("set")
                                                                                                                                                 .arg("mymaster")
                                                                                                                                                 .arg("down-after-milliseconds")
-                                                                                                                                                .arg("1000"))
+                                                                                                                                                .arg("500"))
                                                                                                                                                 .onFailure(f1->{
                                                                                                                                                     logger.error("--"+f1.getCause());
                                                                                                                                                 })
@@ -182,14 +182,14 @@ public class RedisClientUtil {
                                                                                                                                                     conn4.send(Request.cmd(Command.SENTINEL).arg("set")
                                                                                                                                                             .arg("mymaster")
                                                                                                                                                             .arg("down-after-milliseconds")
-                                                                                                                                                            .arg("1000"))
+                                                                                                                                                            .arg("500"))
                                                                                                                                                             .onSuccess(timeoutInfo2->{
                                                                                                                                                                 System.out.println("timeoutInfo2 set");
 
                                                                                                                                                                 conn5.send(Request.cmd(Command.SENTINEL).arg("set")
                                                                                                                                                                         .arg("mymaster")
                                                                                                                                                                         .arg("down-after-milliseconds")
-                                                                                                                                                                        .arg("1000"))
+                                                                                                                                                                        .arg("500"))
                                                                                                                                                                         .onSuccess(timeoutInfo3->{
                                                                                                                                                                             System.out.println("timeoutInfo3 set");
 

@@ -19,7 +19,7 @@ public class JedisSentinelPools {
 
     private static String masterName = "mymaster";
 
-    private  static Set<String> sentinels = new HashSet<String>();
+    private static Set<String> sentinels = new HashSet<String>();
 
     //可用连接实例的最大数目，默认为8；
     //如果赋值为-1，则表示不限制，如果pool已经分配了maxActive个jedis实例，则此时pool的状态为exhausted(耗尽)
@@ -39,10 +39,10 @@ public class JedisSentinelPools {
     //是否进行有效性检查
     private static Boolean TEST_ON_RETURN = true;
 
-    public static Jedis getJedis(){
-        if(pool==null){
-            synchronized (JedisSentinelPools.class){
-                if(pool==null){
+    public static Jedis getJedis() {
+        if (pool == null) {
+            synchronized (JedisSentinelPools.class) {
+                if (pool == null) {
                     initPool();
                 }
             }
@@ -50,11 +50,11 @@ public class JedisSentinelPools {
         return pool.getResource();
     }
 
-    private static void initPool(){
+    private static void initPool() {
 
         if (serverIpsStatic == null) {
-//            Jedis jedis = new Jedis("127.0.0.1" , 6379);
-            Jedis jedis = new Jedis("47.94.19.223" , 6379);
+            Jedis jedis = new Jedis("127.0.0.1" , 6379);
+//            Jedis jedis = new Jedis("47.94.19.223", 6379);
             String json = jedis.get("ips");
             jedis.close();
             serverIpsStatic = convertIp(json);
@@ -67,22 +67,22 @@ public class JedisSentinelPools {
         config.setTestWhileIdle(TEST_WHILE_IDLE);
         config.setTestOnReturn(TEST_ON_RETURN);
 
-        sentinels.add(new HostAndPort(serverIpsStatic[0],26379).toString());
-        sentinels.add(new HostAndPort(serverIpsStatic[1],26379).toString());
-        sentinels.add(new HostAndPort(serverIpsStatic[2],26379).toString());
+        sentinels.add(new HostAndPort(serverIpsStatic[0], 26379).toString());
+        sentinels.add(new HostAndPort(serverIpsStatic[1], 26379).toString());
+        sentinels.add(new HostAndPort(serverIpsStatic[2], 26379).toString());
         pool = new JedisSentinelPool(masterName, sentinels, config, TIMEOUT);
     }
 
-    public static String[] convertIp(String json){
-        List<String> ipList = GsonUtils.jsonToList(json , String.class);
+    public static String[] convertIp(String json) {
+        List<String> ipList = GsonUtils.jsonToList(json, String.class);
         String[] serverIps = new String[3];
-        for(int index=0 ; index < 3 ; index++){
+        for (int index = 0; index < 3; index++) {
             serverIps[index] = ipList.get(index);
         }
         return serverIps;
     }
 
-    public synchronized static void reSetPool(){
-        pool = new JedisSentinelPool(masterName , sentinels , config ,TIMEOUT);
+    public static void returnResource(Jedis jedis) {
+        pool.returnResource(jedis);
     }
 }
