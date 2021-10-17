@@ -12,7 +12,9 @@ import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.exceptions.JedisConnectionException;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static com.chat.utils.JedisSentinelPools.*;
@@ -23,6 +25,10 @@ public class MessageJedisDao {
 
     private final static String MESSAGE_SET = "messageSet";
 
+    private static int cacheSize = 256;
+
+    private static HashMap< String , ArrayList<String> >messageCache = new HashMap<String , ArrayList<String>>(cacheSize);
+
     public MessageJedisDao() {
         this.baseOperate();
     }
@@ -31,6 +37,8 @@ public class MessageJedisDao {
         Jedis jedis = getJedis();
         try{
             long index = jedis.lpush(saveInfo.get(0), saveInfo.get(1));
+            ArrayList<String> temp = (ArrayList)jedis.lrange(saveInfo.get(0) , 0 , cacheSize);
+            messageCache.put(saveInfo.get(0) , temp);
             returnResource(jedis);
             msg.reply(true);
         }catch (JedisConnectionException ce){
@@ -52,6 +60,19 @@ public class MessageJedisDao {
                 msg.reply(false);
                 return ;
             }
+
+            //先从内存获取
+            if(messageCache.containsKey(queryParam.get(0))
+                    && Integer.parseInt(queryParam.get(2))<messageCache.get(queryParam.get(0)).size()){
+                ArrayList<String> temp = messageCache.get(queryParam.get(0));
+                List<String> messages = temp.subList(Integer.parseInt(queryParam.get(1)) , Integer.parseInt(queryParam.get(2))+1);
+                List<MessageRetrive> messageRetrives = new ArrayList<>();
+                for(String str : messages){
+                    messageRetrives.add(GsonUtils.jsonToBean(str ,MessageRetrive.class ));
+                }
+                msg.reply(GsonUtils.toJsonString(messageRetrives));
+            }
+
             List<String> messages = jedis.lrange(queryParam.get(0), Integer.parseInt(queryParam.get(1)),
                     Integer.parseInt(queryParam.get(2)));
             returnLocalResource(jedis);
