@@ -229,16 +229,6 @@ public class RedisClientUtil {
 
         serverIpsStatic = convertIp(json);
 
-        //保存ip到redis.properties,为了重启后初始化高可用客户端
-        /*FileOutputStream oFile = null;//true表示追加打开
-        try {
-            oFile = new FileOutputStream("redis.properties", false);
-            prop.setProperty("ips", json);
-            prop.store(oFile, "The redis properties file");
-            oFile.close();
-        } catch (IOException e) {
-        }*/
-
         //初始化redis server
         Redis lockClient = Redis.createClient(
                 Main.vertx,
@@ -385,11 +375,6 @@ public class RedisClientUtil {
                         }catch (Exception e){
                         }
                     }
-
-                    // 本地客户端
-//                    SingleRedisClient singleRedisClient = new SingleRedisClient();
-//                    RedisConnection connection = singleRedisClient.init();
-//                    redisAPI = RedisAPI.api(connection);
                 }
             }
             return redisAPI;
